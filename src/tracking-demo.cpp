@@ -1,40 +1,65 @@
-#include <opencv2/opencv.hpp>
-#include <opencv2/video/tracking.hpp>
-#include <opencv2/core/ocl.hpp>
+#include <opencv2/core.hpp> // Core functionalities
+#include <opencv2/highgui.hpp> // High-level GUI
+#include <opencv2/imgproc.hpp> // Image processing
+#include <opencv2/tracking.hpp> // Tracking API
+#include <opencv2/tracking/tracking_legacy.hpp> // Legacy tracking API
 #include <iostream>
 
 using namespace cv;
 using namespace std;
+using namespace legacy;
+
+class LegacyTrackerWrapper : public cv::Tracker {
+    const Ptr<legacy::Tracker> legacy_tracker_;
+
+public:
+    LegacyTrackerWrapper(const Ptr<legacy::Tracker>& legacy_tracker)
+        : legacy_tracker_(legacy_tracker) {}
+
+    ~LegacyTrackerWrapper() override {}
+
+    void init(InputArray image, const Rect& boundingBox) override {
+        legacy_tracker_->init(image, static_cast<Rect2d>(boundingBox));
+    }
+
+    bool update(InputArray image, Rect& boundingBox) override {
+        Rect2d boundingBox2d;
+        bool res = legacy_tracker_->update(image, boundingBox2d);
+        boundingBox = static_cast<Rect>(boundingBox2d);  // Ensure this cast is safe or adjust accordingly
+        return res;
+    }
+};
+
+Ptr<cv::Tracker> upgradeTrackingAPI(const Ptr<legacy::Tracker>& legacy_tracker) {
+    return makePtr<LegacyTrackerWrapper>(legacy_tracker);
+}
+
+Ptr<cv::Tracker> get_tracker(const string& trackerType) {
+    if (trackerType == "CSRT")
+        return legacy::upgradeTrackingAPI(legacy::TrackerCSRT::create());
+    if (trackerType == "BOOSTING")
+        return legacy::upgradeTrackingAPI(legacy::TrackerBoosting::create());
+    if (trackerType == "KCF")
+        return legacy::upgradeTrackingAPI(legacy::TrackerKCF::create());
+    if (trackerType == "MedianFlow")
+        return legacy::upgradeTrackingAPI(legacy::TrackerMedianFlow::create());
+    if (trackerType == "TLD")
+        return legacy::upgradeTrackingAPI(legacy::TrackerTLD::create());
+    if (trackerType == "MOSSE")
+        return legacy::upgradeTrackingAPI(legacy::TrackerMOSSE::create());
+    if (trackerType == "MIL")
+        return legacy::upgradeTrackingAPI(legacy::TrackerMIL::create());
+    throw std::runtime_error("Unsupported tracker type");
+
+}
+
 
 int main() {
-    // List of tracker types
-    string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"};
-    string trackerType = trackerTypes[1]; 
-
-    // if (trackerType == "BOOSTING")
-    //     tracker = TrackerBoosting::create();
-    // if (trackerType == "MIL")
-    //     tracker = TrackerMIL::create();
-    // if (trackerType == "KCF")
-    //     tracker = TrackerKCF::create();
-    // if (trackerType == "TLD")
-    //     tracker = TrackerTLD::create();
-    // if (trackerType == "MEDIANFLOW")
-    //     tracker = TrackerMedianFlow::create();
-    // if (trackerType == "GOTURN")
-    //     tracker = TrackerGOTURN::create();
-    // if (trackerType == "MOSSE")
-    //     tracker = TrackerMOSSE::create();
-    // if (trackerType == "CSRT")
-    //     tracker = TrackerCSRT::create();
-
+    string trackerType = "TLD"; 
     // Create a tracker
     cout << "Creating tracker..." << endl;
-    Ptr<Tracker> tracker;
-
-    // MIL is the only tracker object that works...
-    tracker = TrackerMIL::create();
-    cout << "MIL Tracker created!" << endl;
+    Ptr<cv::Tracker> tracker = get_tracker(trackerType);
+    cout << trackerType << " Tracker created!" << endl;
 
     // Open video file
     cout << "Opening video file..." << endl;
