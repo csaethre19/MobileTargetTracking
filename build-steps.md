@@ -21,7 +21,10 @@ mkdir build
 cmake -B .\build\
 
 ### Build:
-cmake --build .\build\
+cmake --build .\build\ -- target <Executable_to_run>
 
 ### To Run:
 .\build\Debug\<Executable>
+
+### Running Tests:
+Same steps for building/running above - specify test executable from tests directory

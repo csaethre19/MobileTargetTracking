@@ -9,3 +9,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_executable(Tracking src/tracking-demo.cpp)
 
 TARGET_LINK_LIBRARIES(Tracking ${OpenCV_LIBS})
+
+add_executable(Temp src/webcam-demo.cpp)
+
+TARGET_LINK_LIBRARIES(Temp ${OpenCV_LIBS})
