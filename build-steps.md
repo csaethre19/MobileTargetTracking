@@ -36,4 +36,6 @@ cmake --build .\build\ -- target <Executable_to_run>
 .\build\Debug\<Executable>
 
 ### Running Tests:
+Dependency: gtest \
+./vcpkg install gtest \
 Same steps for building/running above - specify test executable from tests directory
