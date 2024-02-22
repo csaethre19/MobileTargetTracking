@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(OpenCVDemo)
+project(MobileTargetTracking)
 
 FIND_PACKAGE(OpenCV REQUIRED)
 

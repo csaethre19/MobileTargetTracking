@@ -12,13 +12,22 @@
     - opencv\build\x64\vc16\lib
     - C:\Program Files\CMake\bin
 - CMakeLists.txt created in project folder
-
+- Install OpenCV on your computer with contrib modules included (this takes a long time)
+    This is necessary to use the additional tracking algoirthms
+    - git clone https://github.com/Microsoft/vcpkg.git
+    - cd vcpkg
+    - .\bootstrap-vcpkg.bat
+    - .\vcpkg install opencv[contrib]:x64-windows
+    - .\vcpkg integrate install
 
 ### When first building create the build folder:
 mkdir build
 
-###### First time building:
+### First time build:
 cmake -B .\build\
+
+###### First time building after installing EXTRA MODULES (path to vcpkg depends on where you cloned it!):
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=D:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
 ### Build:
 cmake --build .\build\ -- target <Executable_to_run>
