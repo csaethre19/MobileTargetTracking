@@ -6,6 +6,12 @@ FIND_PACKAGE(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(Tracking src/tracking-demo.cpp)
+include_directories(src/include)
 
-TARGET_LINK_LIBRARIES(Tracking ${OpenCV_LIBS})
+include_directories(include)
+
+add_executable(TestMain src/Main.cpp)
+
+target_include_directories(TestMain PRIVATE include)
+
+TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS})

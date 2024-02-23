@@ -1,7 +1,7 @@
-#include <opencv2/opencv.hpp>
+#ifndef TRACKER_FUNCTIONS_H
+#define TRACKER_FUNCTIONS_H
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
-#include <iostream>
 #include "Tracking.h"
 
 using namespace cv;
@@ -17,7 +17,7 @@ using namespace std;
 Tracking constructor
 */
 Tracking::Tracking(const std::string& trackerType, FrameSize frameSize, cv::VideoCapture& video) 
-    : trackerType_(trackerType), frameSize_(frameSize), video_(video) {
+    : trackerType(trackerType), frameSize(frameSize), video(video) {
     // Creates tracker
     cout << "Creating tracker..." << endl;
     if (trackerType == "BOOSTING")
@@ -42,15 +42,15 @@ Tracking::Tracking(const std::string& trackerType, FrameSize frameSize, cv::Vide
     }
     cout << "Tracker created!" << endl;
     // 
-    if (frameSize_ == FrameSize::SMALL) {
-        frameWidth_ = frame.cols / 2;
-        frameHeight_ = frame.rows / 2;
-    } else if (frameSize_ == FrameSize::MEDIUM) {
-        frameWidth_ = 800;
-        frameHeight_ = 600;
-    } else if (frameSize_ == FrameSize::LARGE) {
-        frameWidth_ = 1600;
-        frameHeight_ = 1200;
+    if (frameSize == FrameSize::SMALL) {
+        frameWidth = frame.cols / 2;
+        frameHeight = frame.rows / 2;
+    } else if (frameSize == FrameSize::MEDIUM) {
+        frameWidth = 800;
+        frameHeight = 600;
+    } else if (frameSize == FrameSize::LARGE) {
+        frameWidth = 1600;
+        frameHeight = 1200;
     }
 }
 
@@ -59,7 +59,7 @@ Tracking::Tracking(const std::string& trackerType, FrameSize frameSize, cv::Vide
 Initializes tracking. Gets user input on frame size and
 has user select the target to be tracked.
 */
-Mat initializeTracking(){
+Mat Tracking::initializeTracking(){
         // Read first frame
     cout << "Reading first frame..." <<  endl;
     Mat frame;
@@ -86,7 +86,7 @@ Mat initializeTracking(){
 /*
 Performs continuous tracking of user's selected target.
 */
-void continuousTracking(Mat frame){
+void Tracking::continuousTracking(Mat frame){
         while(video.read(frame)) {
         // Resize frame
         resize(frame, frame, Size(frame_width, frame_height));
@@ -138,3 +138,4 @@ void continuousTracking(Mat frame){
     destroyAllWindows();
     return;
 }
+#endif

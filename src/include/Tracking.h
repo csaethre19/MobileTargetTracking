@@ -1,10 +1,9 @@
-#ifndef TRACKER_FUNCTIONS_H
-#define TRACKER_FUNCTIONS_H
+
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/video/tracking.hpp>
-#include <opencv2/core/ocl.hpp>
+
 #include <iostream>
+
 
 using namespace cv;
 using namespace std;
@@ -23,11 +22,15 @@ void continuousTracking(Mat frame);
 
 private:
 // Global variables for tracking size of frame
-int frame_width;
-int frame_height;
+int frameWidth;
+int frameHeight;
 Rect bbox;
 Ptr<Tracker> tracker;
+
+std::string trackerType;
+FrameSize frameSize;
+cv::VideoCapture video;
+
 //cv::VideoCapture& video;
 
-}
-#endif
+};

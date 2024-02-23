@@ -2,6 +2,7 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
 #include <iostream>
+#include "Camera.h"
 
 using namespace cv;
 using namespace std;
@@ -10,7 +11,7 @@ using namespace std;
 Allows user to select webcam or video file - this will be replaced with
 Camera.cpp
 */
-cv::VideoCapture selectVideo(){
+cv::VideoCapture Camera::selectVideo(){
     std::string userInput;
     std::cout << "Are you using webcam or video file: ";
     std::getline(std::cin, userInput);
