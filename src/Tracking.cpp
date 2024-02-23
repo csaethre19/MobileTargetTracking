@@ -2,56 +2,56 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
 #include <iostream>
+#include "Tracking.h"
 
 using namespace cv;
 using namespace std;
 
-// Global variables for tracking size of frame
-int frame_width;
-int frame_height;
-// Global variable for the tracking box
-Rect bbox;
+// // Global variables for tracking size of frame
+// int frame_width;
+// int frame_height;
+// // Global variable for the tracking box
+// Rect bbox;
 
 /*
-Function creates a tracker based on user's input. There are 8 possible choices.
-If one is not selected print out error message.
+Tracking constructor
 */
-void create_Tracker(){
-    // List of tracker types
-    string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"};
-    string trackerType = trackerTypes[1]; 
-    Ptr<Tracker> tracker;
-
-    // User selects tracker wanted
-    std::string userInput;
-    std::cout << "Please select a tracker type: ";
-    std::getline(std::cin, userInput);
-    std::cout << "Selected tracker: " << userInput << std::endl;
-    // Based on user's input create the selected tracker
+Tracking::Tracking(const std::string& trackerType, FrameSize frameSize, cv::VideoCapture& video) 
+    : trackerType_(trackerType), frameSize_(frameSize), video_(video) {
+    // Creates tracker
     cout << "Creating tracker..." << endl;
-    if (userInput == "BOOSTING")
+    if (trackerType == "BOOSTING")
         tracker = TrackerBoosting::create();
-    else if (userInput == "MIL")
+    else if (trackerType == "MIL")
         tracker = TrackerMIL::create();
-    else if (userInput == "KCF")
+    else if (trackerType == "KCF")
         tracker = TrackerKCF::create();
-    else if (userInput == "TLD")
+    else if (trackerType == "TLD")
         tracker = TrackerTLD::create();
-    else if (userInput == "MEDIANFLOW")
+    else if (trackerType == "MEDIANFLOW")
         tracker = TrackerMedianFlow::create();
-    else if (userInput == "GOTURN")
+    else if (trackerType == "GOTURN")
         tracker = TrackerGOTURN::create();
-    else if (userInput == "MOSSE")
+    else if (trackerType == "MOSSE")
         tracker = TrackerMOSSE::create();
-    else if (userInput == "CSRT")
+    else if (trackerType == "CSRT")
         tracker = TrackerCSRT::create();
     else{
         cout << "ERROR: Invalid tracker type" << endl;
         std::exit(EXIT_FAILURE);
     }
-
     cout << "Tracker created!" << endl;
-    return;
+    // 
+    if (frameSize_ == FrameSize::SMALL) {
+        frameWidth_ = frame.cols / 2;
+        frameHeight_ = frame.rows / 2;
+    } else if (frameSize_ == FrameSize::MEDIUM) {
+        frameWidth_ = 800;
+        frameHeight_ = 600;
+    } else if (frameSize_ == FrameSize::LARGE) {
+        frameWidth_ = 1600;
+        frameHeight_ = 1200;
+    }
 }
 
 
@@ -59,41 +59,13 @@ void create_Tracker(){
 Initializes tracking. Gets user input on frame size and
 has user select the target to be tracked.
 */
-Mat initialize_Tracking(){
+Mat initializeTracking(){
         // Read first frame
     cout << "Reading first frame..." <<  endl;
     Mat frame;
     bool ok = video.read(frame);
     if (!ok) {
         cout << "ERROR: Could not read frame" << endl;
-        std::exit(EXIT_FAILURE);
-    }
-    // Allow user to select the size of the frame they want
-    cout << "Resizing frame..." <<  endl;
-    std::string userInput;
-    std::cout << "Please select size for frame: small, medium, large ";
-    std::getline(std::cin, userInput);
-
-    if(userInput == "small"){
-        // Frame dimensions
-        frame_width = frame.cols / 2;
-        frame_height = frame.rows / 2;
-        // Resize frame
-        resize(frame, frame, Size(frame_width, frame_height));
-    } else if(userInput == "medium"){
-            // Frame dimensions
-        int frame_width = 800;
-        int frame_height = 600;
-        // Resize frame
-        resize(frame, frame, Size(frame_width, frame_height));
-    } else if(userInput == "large"){
-        // Frame dimensions
-        int frame_width = 1600;
-        int frame_height = 1200;
-        // Resize frame
-        resize(frame, frame, Size(frame_width, frame_height));
-    }else{
-        cout << "ERROR: No size selected" << endl;
         std::exit(EXIT_FAILURE);
     }
 
@@ -114,7 +86,7 @@ Mat initialize_Tracking(){
 /*
 Performs continuous tracking of user's selected target.
 */
-void continuous_Tracking(Mat frame){
+void continuousTracking(Mat frame){
         while(video.read(frame)) {
         // Resize frame
         resize(frame, frame, Size(frame_width, frame_height));

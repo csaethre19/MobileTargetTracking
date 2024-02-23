@@ -10,14 +10,16 @@ using namespace std;
 Allows user to select webcam or video file - this will be replaced with
 Camera.cpp
 */
-void select_Video(){
+cv::VideoCapture selectVideo(){
     std::string userInput;
     std::cout << "Are you using webcam or video file: ";
     std::getline(std::cin, userInput);
 
+    cv::VideoCapture video;
+
     if(userInput == "webcam"){
         // Open webcam
-        cv::VideoCapture video(0);
+         video = cv::VideoCapture(0);
         // Check if opened
         if (!video.isOpened()) {
             cout << "ERROR: Could not open webcam" << endl;
@@ -30,7 +32,7 @@ void select_Video(){
         std::getline(std::cin, file);
         // Open video file
         cout << "Opening video file..." << endl;
-        VideoCapture video(file);
+         video = cv::VideoCapture(file);
         //check if opened
         if (!video.isOpened()) {
             cout << "ERROR: Could not read video file" << endl;
@@ -42,5 +44,5 @@ void select_Video(){
         std::exit(EXIT_FAILURE);
     }
     cout << "Success!" << endl;
-    return;
+    return video;
 }

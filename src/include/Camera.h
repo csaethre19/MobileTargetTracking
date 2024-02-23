@@ -9,6 +9,11 @@
 using namespace cv;
 using namespace std;
 
-// Function declarations
-void select_Video();
+class Camera{
+    public:
+
+    // Function declarations
+    void selectVideo();
+
+}
 

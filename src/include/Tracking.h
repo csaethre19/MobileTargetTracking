@@ -9,15 +9,25 @@
 using namespace cv;
 using namespace std;
 
-// Global variables for tracking size of frame
-extern int frame_width;
-extern int frame_height;
-extern Rect bbox;
+// Enum to specify frame size
+enum FrameSize { SMALL, MEDIUM, LARGE };
+
+class Tracking {
+public:
+
+Tracking(const std::string& trackerType, FrameSize frameSize, cv::VideoCapture& video);
 
 // Function declarations
-void create_Tracker();
-void select_Video();
-Mat initialize_Tracking();
-void continuous_Tracking(Mat frame);
+Mat initializeTracking();
+void continuousTracking(Mat frame);
 
+private:
+// Global variables for tracking size of frame
+int frame_width;
+int frame_height;
+Rect bbox;
+Ptr<Tracker> tracker;
+//cv::VideoCapture& video;
+
+}
 #endif
