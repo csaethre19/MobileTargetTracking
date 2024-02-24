@@ -8,10 +8,10 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 include_directories(src/include)
 
-include_directories(include)
-
-add_executable(TestMain src/Main.cpp)
-
-target_include_directories(TestMain PRIVATE include)
+add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp)
 
 TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS})
+
+add_executable(Temp src/webcam-demo.cpp)
+
+TARGET_LINK_LIBRARIES(Temp ${OpenCV_LIBS})

@@ -1,13 +1,13 @@
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
+using namespace std;
 
 
 class Camera{
     public:
 
-    // Function declarations
-    cv::VideoCapture selectVideo();
+    cv::VideoCapture selectVideo(string videoPath="");
 
 };
 
