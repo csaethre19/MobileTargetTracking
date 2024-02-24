@@ -100,16 +100,26 @@ void Tracking::continuousTracking()
     resize(frame, frame, Size(frameWidth, frameHeight));
 
     cout << "Initializing video writer..." << endl;
-    // Initialize video writer
-    VideoWriter output(trackerType + ".avi", VideoWriter::fourcc('X', 'V', 'I', 'D'), 60.0, Size(frameWidth / 2, frameHeight / 2), true);
+    // NOT NEEDED - Initialize video writer
+    //VideoWriter output(trackerType + ".avi", VideoWriter::fourcc('X', 'V', 'I', 'D'), 60.0, Size(frameWidth / 2, frameHeight / 2), true);
+    
     cout << "Selecting ROI manually with frame..." << endl;
     // Select ROI
     Rect bbox = selectROI(frame, false);
+
+    // TODO: move the above code to Camera
+    // pass bbox and frame as references to the Tracking constructor
+    
     // Initialize tracker with first frame and bounding box
-    tracker->init(frame, bbox);
+    tracker->init(frame, bbox); // TODO: call in constructor after getTracker()
     cout << "Tracker initialized." << endl;
     cout << "Tracking Started..." << endl;
 
+    // TODO: extract the while loop outside Tracking (in Main.cpp)
+    // We will do this so we can have continuousTracking() return p1 and p2
+    // We will call continuousTracking() on each iteration of the while (video.read(frame))
+    // get a p1,p2 pair returned and pass that to the drone code to move the drone based on those coordinates
+    // then move onto the next frame and do it again...
     while (video.read(frame))
     {
         // Resize frame
@@ -117,17 +127,15 @@ void Tracking::continuousTracking()
 
         // Start timer
         double timer = (double)getTickCount();
-        cout << "Timer started." << endl;
 
         cout << "Updating tracker..." << endl;
+
         // Update tracking result
         bool found = tracker->update(frame, bbox);
         cout << "Tracker updated!" << endl;
 
-        cout << "Calculating FPS..." << endl;
         // Calculate Frames per second (FPS)
         float fps = getTickFrequency() / ((double)getTickCount() - timer);
-        cout << "FPS: " << fps << endl;
 
         if (found)
         {
@@ -135,6 +143,10 @@ void Tracking::continuousTracking()
             // Tracking success: Draw the tracked object
             Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
             Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
+
+            cout << "P1: (" << p1.x << ", " << p1.y << ")" << endl;
+            cout << "P2: (" << p2.x << ", " << p2.y << ")" << endl;
+            
             rectangle(frame, p1, p2, Scalar(255, 0, 0), 2, 1);
         }
         else
@@ -151,7 +163,7 @@ void Tracking::continuousTracking()
 
         // Display result
         imshow("Tracking", frame);
-        output.write(frame);
+        //output.write(frame);
 
         // Exit if ESC pressed
         int k = waitKey(1);
@@ -164,7 +176,7 @@ void Tracking::continuousTracking()
     cout << "Ending tracking" << endl;
 
     video.release();
-    output.release();
+    //output.release();
 
     destroyAllWindows();
 }

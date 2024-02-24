@@ -29,4 +29,8 @@ class Tracking {
     FrameSize frameSize;
     cv::VideoCapture video;
 
+    // Going to use these when we start passing these in from the Camera module
+    // Rect& bbox;
+    // Mat& frame;
+
 };
