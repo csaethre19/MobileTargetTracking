@@ -57,8 +57,8 @@ Ptr<cv::Tracker> getTracker(const string &trackerType)
 /*
 Tracking constructor
 */
-Tracking::Tracking(const std::string &trackerType, FrameSize frameSize, cv::VideoCapture &video)
-    : trackerType(trackerType), frameSize(frameSize), video(video)
+Tracking::Tracking(const std::string &trackerType, FrameSize frameSize, Camera::Camera &cam)
+    : trackerType(trackerType), frameSize(frameSize), cam(cam)
 {
     // Creates tracker
     tracker = getTracker(trackerType);
@@ -73,7 +73,7 @@ void Tracking::continuousTracking()
     // Read first frame
     cout << "Reading first frame..." << endl;
     Mat frame;
-    bool ok = video.read(frame);
+    bool ok = cam.read(frame);
     if (!ok)
     {
         cout << "ERROR: Could not read frame" << endl;
@@ -99,10 +99,11 @@ void Tracking::continuousTracking()
     // Resize frame
     resize(frame, frame, Size(frameWidth, frameHeight));
 
-    cout << "Initializing video writer..." << endl;
+    //cout << "Initializing video writer..." << endl;
     // Initialize video writer
-    VideoWriter output(trackerType + ".avi", VideoWriter::fourcc('X', 'V', 'I', 'D'), 60.0, Size(frameWidth / 2, frameHeight / 2), true);
-    cout << "Selecting ROI manually with frame..." << endl;
+    //VideoWriter output(trackerType + ".avi", VideoWriter::fourcc('X', 'V', 'I', 'D'), 60.0, Size(frameWidth / 2, frameHeight / 2), true);
+    //cout << "Selecting ROI manually with frame..." << endl;
+    
     // Select ROI
     Rect bbox = selectROI(frame, false);
     // Initialize tracker with first frame and bounding box
@@ -110,7 +111,7 @@ void Tracking::continuousTracking()
     cout << "Tracker initialized." << endl;
     cout << "Tracking Started..." << endl;
 
-    while (video.read(frame))
+    while (cam.read(frame))
     {
         // Resize frame
         resize(frame, frame, Size(frameWidth, frameHeight));
@@ -163,8 +164,8 @@ void Tracking::continuousTracking()
 
     cout << "Ending tracking" << endl;
 
-    video.release();
-    output.release();
+    //video.release();
+    //output.release();
 
     destroyAllWindows();
 }

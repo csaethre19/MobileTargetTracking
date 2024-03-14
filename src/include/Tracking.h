@@ -4,6 +4,7 @@
 #include <opencv2/tracking.hpp> // Tracking API
 #include <opencv2/tracking/tracking_legacy.hpp> // Legacy tracking API
 #include <iostream>
+#include "Camera.h"
 
 using namespace cv;
 using namespace std;
@@ -15,7 +16,7 @@ enum FrameSize { SMALL, MEDIUM, LARGE };
 class Tracking {
     public:
 
-    Tracking(const std::string& trackerType, FrameSize frameSize, cv::VideoCapture& video);
+    Tracking(const std::string& trackerType, FrameSize frameSize, Camera::Camera cam);
 
     void continuousTracking();
 
@@ -27,6 +28,6 @@ class Tracking {
     Ptr<cv::Tracker> tracker;
     std::string trackerType;
     FrameSize frameSize;
-    cv::VideoCapture video;
+    Camera::Camera cam;
 
 };

@@ -7,7 +7,13 @@ using namespace std;
 class Camera{
     public:
 
+    Camera();
+    
     cv::VideoCapture selectVideo(string videoPath="");
+    
+    bool read(cv::Mat frame);
+    
+    raspicam::RaspiCam Camera; 
 
 };
 
