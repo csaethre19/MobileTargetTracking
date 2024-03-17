@@ -19,6 +19,7 @@ class Tracking {
 
     void continuousTracking();
 
+
     private:
 
     int frameWidth;

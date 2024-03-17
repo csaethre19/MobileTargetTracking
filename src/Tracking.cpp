@@ -38,19 +38,19 @@ Ptr<cv::Tracker> upgradeTrackingAPI(const Ptr<legacy::Tracker> &legacy_tracker)
 
 Ptr<cv::Tracker> getTracker(const string &trackerType)
 {
-    if (trackerType == "CSRT")
+    if (trackerType == "CSRT") // Slow
         return legacy::upgradeTrackingAPI(legacy::TrackerCSRT::create());
-    if (trackerType == "BOOSTING")
+    if (trackerType == "BOOSTING") // POS
         return legacy::upgradeTrackingAPI(legacy::TrackerBoosting::create());
-    if (trackerType == "KCF")
+    if (trackerType == "KCF") // Slow
         return legacy::upgradeTrackingAPI(legacy::TrackerKCF::create());
-    if (trackerType == "MedianFlow")
+    if (trackerType == "MedianFlow") // Good frame rate, terrible tracking
         return legacy::upgradeTrackingAPI(legacy::TrackerMedianFlow::create());
-    if (trackerType == "TLD")
+    if (trackerType == "TLD") // Slow with bbox resizing
         return legacy::upgradeTrackingAPI(legacy::TrackerTLD::create());
-    if (trackerType == "MOSSE")
+    if (trackerType == "MOSSE") // Fastest
         return legacy::upgradeTrackingAPI(legacy::TrackerMOSSE::create());
-    if (trackerType == "MIL")
+    if (trackerType == "MIL") // Slow
         return legacy::upgradeTrackingAPI(legacy::TrackerMIL::create());
     throw std::runtime_error("Unsupported tracker type");
 }
@@ -103,8 +103,7 @@ void Tracking::continuousTracking()
     resize(frame, frame, Size(frameWidth, frameHeight));
 
     // NOT NEEDED - Initialize video writer - creates a video
-    //VideoWriter output(trackerType + ".mp4", VideoWriter::fourcc('X', 'V', 'I', 'D'), 60.0, Size(frameWidth / 2, frameHeight / 2), true);
-
+    VideoWriter output(trackerType + ".mp4", VideoWriter::fourcc('X', 'V', 'I', 'D'), 60.0, Size(frameWidth, frameHeight), true);
     // Select ROI
     Rect bbox = selectROI(frame, false);
 
@@ -125,16 +124,14 @@ void Tracking::continuousTracking()
         resize(frame, frame, Size(frameWidth, frameHeight));
 
         // Start timer
-        double timer = (double)getTickCount();
-
-        //cout << "Updating tracker..." << endl;
+        //double timer = (double)getTickCount();
 
         // Update tracking result
         bool found = tracker->update(frame, bbox);
-       // cout << "Tracker updated!" << endl;
 
         // Calculate Frames per second (FPS)
-        float fps = getTickFrequency() / ((double)getTickCount() - timer);
+       float fps = video.get(CAP_PROP_FPS);
+       
 
         if (found)
         {
@@ -150,7 +147,7 @@ void Tracking::continuousTracking()
             // Tracking failure detected.
             putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
         }
-
+        
         // Display tracker type on frame
         putText(frame, trackerType + " Tracker", Point(100, 20), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50, 170, 50), 2);
 
@@ -159,7 +156,7 @@ void Tracking::continuousTracking()
 
         // Display result
         imshow("Tracking", frame);
-       // output.write(frame);
+        output.write(frame);
 
         // Exit if ESC pressed
         int k = waitKey(1);
@@ -171,7 +168,7 @@ void Tracking::continuousTracking()
 
 
     video.release();
-   // output.release();
+    output.release();
 
     destroyAllWindows();
 }
