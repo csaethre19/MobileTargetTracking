@@ -3,11 +3,13 @@
 
 using namespace cv;
 
-int main() {
+int main(int argc, char* argv[]) {
     
     Camera cam;
-    cv::VideoCapture video = cam.selectVideo("../src/walking.mp4");
-    Tracking tracker("CSRT", MEDIUM, video);
+    string videoPath = "";
+    if (argc > 1) videoPath = argv[1];
+    cv::VideoCapture video = cam.selectVideo(videoPath);
+    Tracking tracker("MOSSE", MEDIUM, video);
     tracker.continuousTracking();
 
     return 0;
