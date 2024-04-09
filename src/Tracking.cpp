@@ -126,7 +126,7 @@ void Tracking::continuousTracking()
 
         cout << "Calculating FPS..." << endl;
         // Calculate Frames per second (FPS)
-        float fps = getTickFrequency() / ((double)getTickCount() - timer);
+        float fps = video.get(CAP_PROP_FPS);
         cout << "FPS: " << fps << endl;
 
         if (found)
