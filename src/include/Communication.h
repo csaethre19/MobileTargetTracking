@@ -6,6 +6,23 @@
 
 #include <iostream>
 
+/*
+ * 
+ * Note: Right now we are using serial port ttyS0 and this defaults to being used for SSH console login
+ * In order to test use of uart on this port we need to disable agetty from using this port.
+ * Run following commands to DISABLE:
+ * sudo systemctl stop serial-getty@ttyS0.service
+ * sudo systemctl disable serial-getty@ttyS0.service
+ * 
+ * To RE-ENABLE:
+ * sudo systemctl enable serial-getty@ttyS0.service
+ * sudo systemctl start serial-getty@ttyS0.service
+ * 
+ * TODO: Need to look into the use of ttyAMA0 serial port (defaults to being used for Bluetooth)
+ * for gimbal communication.
+ * 
+ * /
+
 using namespace std;
 
 
