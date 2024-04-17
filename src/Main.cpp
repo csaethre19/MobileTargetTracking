@@ -1,10 +1,12 @@
 #include "Tracking.h"
 #include "Camera.h"
+#include "Communication.h"
 
 using namespace cv;
 
 int main(int argc, char* argv[]) {
     
+    Communication comm;
     Camera cam;
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];
