@@ -1,3 +1,4 @@
+## Windows
 ### Pre-requisites:
 - Desktop development with C++ installed for Visual Studio Community - compiler for C++
 - CMake installed https://cmake.org/download/
@@ -30,3 +31,19 @@ cmake --build .\build\ --target \<Executable>
 ### Running Tests:
 Dependency: gtest \
 Same steps for building/running above - specify test executable from tests directory
+
+## Raspi
+
+### 1. When cloning for the first time create a build folder
+mkdir build <br>
+cd build <br>
+### 2. Run Cmake
+cmake ..
+
+### 3. Make project
+make <br>
+
+### 4. Run executable
+Run the executable from inside the build folder <br>
+./\<Executable> <br>
+
