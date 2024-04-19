@@ -54,9 +54,6 @@ Ptr<cv::Tracker> getTracker(const string &trackerType)
     throw std::runtime_error("Unsupported tracker type");
 }
 
-/*
-Tracking constructor
-*/
 Tracking::Tracking(const std::string &trackerType, FrameSize frameSize, cv::VideoCapture &video)
     : trackerType(trackerType), frameSize(frameSize), video(video)
 {
@@ -146,9 +143,6 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
 
 }
 
-/*
-Performs continuous tracking of user's selected target.
-*/
 void Tracking::continuousTracking()
 {
     // Read first frame

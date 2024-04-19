@@ -4,6 +4,11 @@
 
 using namespace cv;
 
+/*
+    Testing notes: use following command from build folder to run
+    sudo ./TestMain ../src/walking.mp4
+*/
+
 int main(int argc, char* argv[]) {
 
     Camera cam;
@@ -46,13 +51,11 @@ int main(int argc, char* argv[]) {
                         cout << "Point p2: (" << p2.x << ", " << p2.y << ")" << endl;
                     }
                     cout << "Tracking ended.\n";
-                    // pass p1 and p2 as references to a new continuous tracking method 
-                    // put call to method in while loop and continue until found is false
-                    // only call update once in the method and return found but also modifying the p1 and p2 in the bounding box
 
                     // TODO: need to parse out track-start and then separately the arguments passed for p1,p2
                     // pass p1,p2 to tracker and start tracking
                     // Output of tracker should write over uart_fd an 'update-loc' command with new coordinates
+                    // TODO: determine what translation of p1,p2 needs to happen before passing to swarm-dongle
                 }
                 else if (strncmp(buffer, "track-end", 9) == 0) {
                     cout << "Tracking stopping...\n";
