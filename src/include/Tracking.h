@@ -19,6 +19,9 @@ class Tracking {
 
     void continuousTracking();
 
+    Mat initTracker(cv::Rect& bbox);
+    bool trackerUpdate(cv::Rect& bbox, cv::Mat& frame);
+
     private:
 
     int frameWidth;

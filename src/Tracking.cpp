@@ -65,6 +65,87 @@ Tracking::Tracking(const std::string &trackerType, FrameSize frameSize, cv::Vide
     cout << "Tracker created!" << endl;
 }
 
+Mat Tracking::initTracker(cv::Rect& bbox)
+{
+    Mat frame;
+    bool ok = video.read(frame);
+
+    if (!ok)
+    {
+        cout << "ERROR: Could not read frame" << endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    if (frameSize == FrameSize::SMALL)
+    {
+        frameWidth = frame.cols / 2;
+        frameHeight = frame.rows / 2;
+    }
+    else if (frameSize == FrameSize::MEDIUM)
+    {
+        frameWidth = 800;
+        frameHeight = 600;
+    }
+    else if (frameSize == FrameSize::LARGE)
+    {
+        frameWidth = 1600;
+        frameHeight = 1200;
+    }
+
+    // Resize frame
+    resize(frame, frame, Size(frameWidth, frameHeight));
+
+    tracker->init(frame, bbox);
+    cout << "Tracker initialized with initial frame and bbox\n";
+
+    return frame;
+}
+
+bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
+{
+    bool found = false;
+
+    if (video.read(frame)) {
+        cout << "Reading frame...\n";
+        resize(frame, frame, Size(frameWidth, frameHeight));
+        found = tracker->update(frame, bbox);
+        if (found)
+        {
+            cout << "Tracking Success!" << endl;
+            // Tracking success: Draw the tracked object
+            Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
+            Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
+            rectangle(frame, p1, p2, Scalar(255, 0, 0), 2, 1);
+        }
+        else
+        {
+            cout << "Tracking FAILURE!\n";
+            // Tracking failure detected.
+            putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
+        }
+
+        // Display tracker type on frame
+        putText(frame, trackerType + " Tracker", Point(100, 20), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50, 170, 50), 2);
+        // Display result
+        imshow("Tracking", frame);
+        // Exit if ESC pressed
+        int k = waitKey(1);
+        if (k == 27)
+        {
+            video.release();
+            destroyAllWindows();
+            
+            return 0;
+        }
+    }
+    else {
+        cout << "Unable to read frame!\n";
+    }
+
+    return found;
+
+}
+
 /*
 Performs continuous tracking of user's selected target.
 */
@@ -105,11 +186,18 @@ void Tracking::continuousTracking()
     cout << "Selecting ROI manually with frame..." << endl;
     // Select ROI
     Rect bbox = selectROI(frame, false);
+    Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
+    Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
+    cout << "BBOX: " << endl;
+    cout << "Point p1: (" << p1.x << ", " << p1.y << ")" << endl;
+    cout << "Point p2: (" << p2.x << ", " << p2.y << ")" << endl;
+
     // Initialize tracker with first frame and bounding box
     tracker->init(frame, bbox);
     cout << "Tracker initialized." << endl;
     cout << "Tracking Started..." << endl;
 
+    
     while (video.read(frame))
     {
         // Resize frame
@@ -160,6 +248,7 @@ void Tracking::continuousTracking()
             break;
         }
     }
+    
 
     cout << "Ending tracking" << endl;
 
@@ -167,4 +256,5 @@ void Tracking::continuousTracking()
     output.release();
 
     destroyAllWindows();
+    
 }
