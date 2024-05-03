@@ -6,6 +6,8 @@
 #include <vector>
 #include <iostream>
 
+#include "Tracking.h"
+
 /*
  * 
  * Note: Right now we are using serial port ttyS0 and this defaults to being used for SSH console login
@@ -30,20 +32,37 @@ using namespace std;
 
 int openUART(void);
 
-/*
-class Communication{
-    public:
-    
-    Communication();
-    ~Communication();
 
-    void processCommand();
+
+class UART {
+    public:
+
+    void openUART(const char* serial_port);
+
+    virtual void processCommand() = 0; 
     
-    private:
+    protected:
     
     int uart_fd;
 
 };
-*/
+
+class SwarmUART : public UART {
+    public:
+
+    SwarmUART(Tracking tracker);
+    ~SwarmUART();
+
+    virtual void processCommand();
+
+    private:
+
+    Tracking tracker;
+    char buffer[128];
+    int cmdBufferPos = 0;
+    char ch;
+
+};
+
 
 
