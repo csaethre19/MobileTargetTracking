@@ -34,6 +34,9 @@ int main(int argc, char* argv[]) {
                 }
                 else if (strncmp(buffer, "track-start", 11) == 0) {
                     cout << "Initiating tracking...\n";
+                    // TODO: need to parse out track-start and then separately the arguments passed for p1,p2
+                    // pass p1,p2 to tracker and start tracking
+
                     // Hard coded points for walking video:
                     Point p1(448, 261); 
                     Point p2(528, 381); 
@@ -44,18 +47,27 @@ int main(int argc, char* argv[]) {
                     Mat frame = tracker.initTracker(bbox);
 
                     while (tracker.trackerUpdate(bbox, frame) != 0) {
-                        Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
-                        Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
-                        cout << "BBOX: " << endl;
-                        cout << "Point p1: (" << p1.x << ", " << p1.y << ")" << endl;
-                        cout << "Point p2: (" << p2.x << ", " << p2.y << ")" << endl;
+                        // Calculate top-left and bottom-right corners of bbox
+                        Point p1(cvRound(bbox.x), cvRound(bbox.y));
+                        Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height));
+
+                        // Calculate center of bbox
+                        int xc = (p1.x + p2.x) / 2;
+                        int yc = (p1.y + p2.y) / 2;
+
+                        char loc[32];
+                        snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
+                        
+                        int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
+                                                                            // only send updated coordinate information when it is beyond some threshold...
+
+                        // TODO: Determine what translation of (xc,yc) needs to happen before passing to swarm-dongle
+                        // Possibility:
+                        //  Calculate center point, C, from (p1,p2) of bounding box
+                        //  Determine center of frame, X, - remains constant and represents where drone is relative to object located in frame
+                        //  Calculate distance between C and X and use this information to update drone GPS coordinates
                     }
                     cout << "Tracking ended.\n";
-
-                    // TODO: need to parse out track-start and then separately the arguments passed for p1,p2
-                    // pass p1,p2 to tracker and start tracking
-                    // Output of tracker should write over uart_fd an 'update-loc' command with new coordinates
-                    // TODO: determine what translation of p1,p2 needs to happen before passing to swarm-dongle
                 }
                 else if (strncmp(buffer, "track-end", 9) == 0) {
                     cout << "Tracking stopping...\n";

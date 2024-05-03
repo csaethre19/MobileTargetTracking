@@ -103,12 +103,10 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
     bool found = false;
 
     if (video.read(frame)) {
-        cout << "Reading frame...\n";
         resize(frame, frame, Size(frameWidth, frameHeight));
         found = tracker->update(frame, bbox);
         if (found)
         {
-            cout << "Tracking Success!" << endl;
             // Tracking success: Draw the tracked object
             Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
             Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
@@ -116,13 +114,26 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
         }
         else
         {
-            cout << "Tracking FAILURE!\n";
             // Tracking failure detected.
             putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
         }
 
         // Display tracker type on frame
         putText(frame, trackerType + " Tracker", Point(100, 20), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50, 170, 50), 2);
+
+        // calculate top-left and bottom-right corners
+        Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
+        Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
+
+        // calculate center of bounding box
+        int xc = (p1.x + p2.x) / 2;
+        int yc = (p1.y + p2.y) / 2;
+
+        // draw center point
+        int radius = 5;
+        cv::Scalar color = cv::Scalar(0, 0, 255); 
+        cv::circle(frame, cv::Point(xc, yc), radius, color, -1);
+
         // Display result
         imshow("Tracking", frame);
         // Exit if ESC pressed

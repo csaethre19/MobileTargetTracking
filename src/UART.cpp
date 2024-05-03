@@ -7,11 +7,10 @@ int openUART(void)
     int uart_fd = open("/dev/ttyS0", O_RDWR);
 
     if (uart_fd == -1) {
-    cerr << "Error - Unable to open UART." << endl;
+        cerr << "Error - Unable to open UART." << endl;
     }
     else {
-    cerr << "Successfully opened UART!" << endl;
-
+        cout << "Successfully opened UART!" << endl;
     }
 
     struct termios tty;

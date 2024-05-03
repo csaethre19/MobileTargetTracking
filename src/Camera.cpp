@@ -37,7 +37,6 @@ cv::VideoCapture Camera::selectVideo(string videoPath)
             cout << "ERROR: Could not read video file" << endl;
             std::exit(EXIT_FAILURE);
         }
-        cout << "Success!" << endl;
     }
 
     return video;
