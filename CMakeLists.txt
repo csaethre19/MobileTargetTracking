@@ -11,6 +11,7 @@ include_directories(src/include)
 add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp)
 
 TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS})
+target_link_libraries(TestMain pthread)
 
 add_executable(Temp src/webcam-demo.cpp)
 

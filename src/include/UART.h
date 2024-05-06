@@ -24,7 +24,6 @@
  * TODO: Need to look into the use of ttyAMA0 serial port (defaults to being used for Bluetooth)
  * for gimbal communication.
  * 
- * 
  */
 
 using namespace std;
