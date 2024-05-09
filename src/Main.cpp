@@ -23,8 +23,11 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
     Rect bbox(p1.x, p1.y, width, height);
-    // Initialize tracking logic...
     Mat frame = tracker.initTracker(bbox);
+    if (frame.empty()) {
+        cout << "tracker initialization failed.\n";
+        return;
+    }
 
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
@@ -62,24 +65,39 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                 if (strncmp(buffer, "track-start", 11) == 0) {
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-
+                    cout << "BUFFER: " << buffer << endl;
                     // TODO: add error checking (no arguments provided, out of bounds of defined frame, etc.)
                     string extractedString = &buffer[12];
                     int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
-                    stream >> x1 >> y1 >> x2 >> y2;
-                    Point p1(x1, y1); 
-                    Point p2(x2, y2); 
+                    if (stream >> x1 >> y1 >> x2 >> y2) {
+                        cout << "x1: " << x1 << " y1: " << y1 << endl;
+                        cout << "x2: " << x2 << " y2: " << y2 << endl;
 
-                    cout << "Initiating tracking...\n";
+                        Point p1(x1, y1); 
+                        Point p2(x2, y2); 
 
-                    continueTracking = true; // Set tracking flag
-                    std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2);
-                    trackThread.detach(); // Allow the thread to operate independently
+                        cout << "Initiating tracking...\n";
+
+                        continueTracking = true; // Set tracking flag
+                        std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2);
+                        trackThread.detach(); // Allow the thread to operate independently
+                    }
+                    else {
+                        cout << "Unable to parse integers from track-start command\n";
+                        for (int i = 0; i < 256; ++i) {
+                            buffer[i] = 0;
+                        }
+                        continue;
+                    }
+
                 }
                 else if (strncmp(buffer, "track-end", 9) == 0) {
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
+                    for (int i = 0; i < 256; ++i) {
+                        buffer[i] = 0;
+                    }
                 }
                 cmdBufferPos = 0; // Reset the buffer position
             }

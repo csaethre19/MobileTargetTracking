@@ -92,6 +92,15 @@ Mat Tracking::initTracker(cv::Rect& bbox)
     // Resize frame
     resize(frame, frame, Size(frameWidth, frameHeight));
 
+    if (bbox.width >= frameWidth || bbox.height >= frameHeight) {
+        cout << "ROI outside of frame bounds\n";
+        return Mat(); // return empty frame - bbox outside of frame bounds
+    }
+    if (bbox.width <= 1 || bbox.height <= 1) {
+        cout << "ROI too small\n";
+        return Mat(); // return empty frame - too small of bbox
+    }
+
     tracker->init(frame, bbox);
     cout << "Tracker initialized with initial frame and bbox\n";
 
