@@ -7,7 +7,9 @@ using namespace cv;
 #include <mutex>
 #include <atomic>
 #include <vector>
-
+#include <sstream>
+#include <string>
+ 
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
 
@@ -43,6 +45,13 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0'; // Null-terminate the command string
                 if (strncmp(buffer, "track-start", 11) == 0) {
+                    // TODO: extract out the points that will be expected after track-start command
+                    // pass those values or create Point objects with them and pass those to trackThread function 
+                    string extractedString = &buffer[12];
+                    int p1, p2;
+                    std::istringstream stream(extractedString);
+                    stream >> p1 >> p2;
+                    cout << "p1: " << p1 << "p2: " << p2 << endl;
                     cout << "Initiating tracking...\n";
                     continueTracking = true; // Set tracking flag
                     std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd);
