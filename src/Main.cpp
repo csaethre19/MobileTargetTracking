@@ -4,15 +4,22 @@
 #include <vector>
 #include <sstream>
 #include <string>
- 
+
+#include "Camera.h"
+#include "UART.h"
+
+using namespace cv;
+
+/*
+    Testing notes: use following command from build folder to run
+    sudo ./TestMain ../src/walking.mp4
+*/
+
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
 
 
-void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd) {
-    // Hard coded points for walking video: (p1 and p2 will have to be read from swarm-dongle which is relaying it from the user app)
-    Point p1(448, 261); 
-    Point p2(528, 381); 
+void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) {
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
     Rect bbox(p1.x, p1.y, width, height);
@@ -53,16 +60,19 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0'; // Null-terminate the command string
                 if (strncmp(buffer, "track-start", 11) == 0) {
-                    // TODO: extract out the points that will be expected after track-start command
-                    // pass those values or create Point objects with them and pass those to trackThread function 
+                    // Extract coordinates of user selected region 
+                    // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
                     string extractedString = &buffer[12];
-                    int p1, p2;
+                    int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
-                    stream >> p1 >> p2;
-                    cout << "p1: " << p1 << "p2: " << p2 << endl;
+                    stream >> x1 >> y1 >> x2 >> y2;
+                    Point p1(x1, y1); 
+                    Point p2(x2, y2); 
+
                     cout << "Initiating tracking...\n";
+
                     continueTracking = true; // Set tracking flag
-                    std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd);
+                    std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2);
                     trackThread.detach(); // Allow the thread to operate independently
                 }
                 else if (strncmp(buffer, "track-end", 9) == 0) {
@@ -94,30 +104,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-
-/*
-    Testing notes: use following command from build folder to run
-    sudo ./TestMain ../src/walking.mp4
-
-
-int main(int argc, char* argv[]) {
-
-    // Local variables: Camera cam, Tracking tracker, SwarmUART swarmUart
-    Camera cam;
-    string videoPath = "";
-    if (argc > 1) videoPath = argv[1];
-    cv::VideoCapture video = cam.selectVideo(videoPath);
-
-    Tracking tracker("MOSSE", MEDIUM, video);
-
-    SwarmUART swarmUart(tracker);
-
-    while (1) 
-    {
-        swarmUart.processCommand();
-    }
-
-    return 0;
-}
-*/
