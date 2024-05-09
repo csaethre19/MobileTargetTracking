@@ -1,19 +1,18 @@
-#include "Camera.h"
-#include "UART.h"
-
-using namespace cv;
-
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <vector>
+#include "Camera.h"
+#include "UART.h"
+
+using namespace cv;
 
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
 
 
 void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd) {
-    // Hard coded points for walking video:
+    // Hard coded points for walking video: (p1 and p2 will have to be read from swarm-dongle which is relaying it from the user app)
     Point p1(448, 261); 
     Point p2(528, 381); 
     int width = p2.x - p1.x;
@@ -24,11 +23,24 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd) {
 
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
+        // Calculate top-left and bottom-right corners of bbox
+        Point p1(cvRound(bbox.x), cvRound(bbox.y));
+        Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height));
+
+        // Calculate center of bbox
+        int xc = (p1.x + p2.x) / 2;
+        int yc = (p1.y + p2.y) / 2;
+
+        char loc[32];
+        snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
+
+        int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
+                                                            // only send updated coordinate information when it is beyond some threshold...
     }
 
     video.release();
     destroyAllWindows();
-    
+
     cout << "Tracking ended.\n";
 }
 
@@ -72,6 +84,8 @@ int main(int argc, char* argv[]) {
 
     std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
     listenerThread.join(); // This will keep main thread alive
+
+    close(uart_fd); // Close uart port
 
     return 0;
 }
