@@ -29,7 +29,7 @@
 using namespace std;
 
 
-int openUART(void);
+int openUART(const char* port);
 
 
 

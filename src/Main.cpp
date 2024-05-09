@@ -62,6 +62,8 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                 if (strncmp(buffer, "track-start", 11) == 0) {
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
+
+                    // TODO: add error checking (no arguments provided, out of bounds of defined frame, etc.)
                     string extractedString = &buffer[12];
                     int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
@@ -95,7 +97,7 @@ int main(int argc, char* argv[]) {
     cv::VideoCapture video = cam.selectVideo(videoPath);
     Tracking tracker("MOSSE", MEDIUM, video);
 
-    int uart_fd = openUART();
+    int uart_fd = openUART("/dev/ttyS0");
 
     std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
     listenerThread.join(); // This will keep main thread alive

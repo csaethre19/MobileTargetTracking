@@ -1,10 +1,10 @@
 #include "UART.h"
 
 
-int openUART(void)
+int openUART(const char* port)
 {
     // Open serial UART port
-    int uart_fd = open("/dev/ttyS0", O_RDWR);
+    int uart_fd = open(port, O_RDWR);
 
     if (uart_fd == -1) {
         cerr << "Error - Unable to open UART." << endl;
