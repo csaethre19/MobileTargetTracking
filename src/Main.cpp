@@ -60,13 +60,13 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
     while (true) {
         if (read(uart_fd, &ch, 1) > 0) {
             if (ch == '\n') {
+                cout << "Received new command...\n";
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0'; // Null-terminate the command string
+                cout << "BUFFER: " << buffer << endl;
                 if (strncmp(buffer, "track-start", 11) == 0) {
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                    cout << "BUFFER: " << buffer << endl;
-                    // TODO: add error checking (no arguments provided, out of bounds of defined frame, etc.)
                     string extractedString = &buffer[12];
                     int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
@@ -85,21 +85,17 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                     }
                     else {
                         cout << "Unable to parse integers from track-start command\n";
-                        for (int i = 0; i < 256; ++i) {
-                            buffer[i] = 0;
-                        }
+                        cmdBufferPos = 0;
+                        memset(buffer, 0, sizeof(buffer));
                         continue;
                     }
-
                 }
                 else if (strncmp(buffer, "track-end", 9) == 0) {
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
-                    for (int i = 0; i < 256; ++i) {
-                        buffer[i] = 0;
-                    }
                 }
                 cmdBufferPos = 0; // Reset the buffer position
+                memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
             }
             else {
                 buffer[cmdBufferPos++] = ch; // Store command characters
