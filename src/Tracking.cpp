@@ -127,6 +127,10 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
             putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
         }
 
+        // TODO: clean-up
+        // remove the following logic
+        // Don't need to display frame on raspi or calculate p1, p2, or center point here - done in main
+
         // Display tracker type on frame
         putText(frame, trackerType + " Tracker", Point(100, 20), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50, 170, 50), 2);
 
@@ -138,13 +142,14 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
         int xc = (p1.x + p2.x) / 2;
         int yc = (p1.y + p2.y) / 2;
 
-        // draw center point
+        // draw center point - this was for testing purposes
         int radius = 5;
         cv::Scalar color = cv::Scalar(0, 0, 255); 
         cv::circle(frame, cv::Point(xc, yc), radius, color, -1);
 
         // Display result
         imshow("Tracking", frame);
+
         // Exit if ESC pressed
         int k = waitKey(1);
         if (k == 27)

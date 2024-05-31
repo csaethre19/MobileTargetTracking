@@ -17,6 +17,7 @@ using namespace cv;
 
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
+std::atomic<bool> transmitTrackingFrame(false)
 
 
 void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) {
@@ -41,9 +42,11 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
 
         char loc[32];
         snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
-
+        // Send updated coordinates to swarm-dongle
         int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
                                                             // only send updated coordinate information when it is beyond some threshold...
+        
+        // TODO: switch to transmitting frame that is outputted via tracking algorithm
     }
 
     video.release();
@@ -108,11 +111,28 @@ int main(int argc, char* argv[]) {
     Camera cam;
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];
+    // Run application without path argument to default to camera module
     cv::VideoCapture video = cam.selectVideo(videoPath);
     Tracking tracker("MOSSE", MEDIUM, video);
 
+    Mat frame;
+    bool ok = video.read(frame);
+    // TODO: start transmitFrameThread
+    // Create thread function that spins off and continuously 
+    // calls video.read(frame) and transmits via frame buffer:
+
+    //  while (video.read(frame) && !transmitTrackingFrame) 
+    //  { 
+    //      // transmit frame 
+    //  }
+
+    // When we receive a start-track command -> transmitTrackingFrame = true
+    // Transmitting will then take place in the trackThread to transmit the frame
+    // getting updated by the tracking algorithm
+
     int uart_fd = openUART("/dev/ttyS0");
 
+    // TODO: remove video as parameter to listenerThread - not needed!
     std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
     listenerThread.join(); // This will keep main thread alive
 
