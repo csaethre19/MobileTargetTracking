@@ -17,6 +17,14 @@ add_executable(Temp src/webcam-demo.cpp src/Camera.cpp)
 
 TARGET_LINK_LIBRARIES(Temp ${OpenCV_LIBS})
 
+add_executable(Grad src/GradiantScreen.cpp)
+
+TARGET_LINK_LIBRARIES(Grad ${OpenCV_LIBS})
+
+add_executable(Red src/PaintScreen.cpp)
+
+TARGET_LINK_LIBRARIES(Red ${OpenCV_LIBS})
+
 # Testing Related:
 
 #find_package(GTest CONFIG REQUIRED)
