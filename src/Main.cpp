@@ -24,7 +24,7 @@ using namespace cv;
 
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
-std::atomic<bool> transmitTrackingFrame(false)
+std::atomic<bool> transmitTrackingFrame(false);
 
 
 void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) {
