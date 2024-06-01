@@ -13,6 +13,13 @@ using namespace cv;
 /*
     Testing notes: use following command from build folder to run
     sudo ./TestMain ../src/walking.mp4
+    * 
+    TODO: 1. Upon initialization of drone need to request from swarm-dongle the initial position (magnetic heading and altituide)
+             as GPS coordinates. This will go into a global shared variable that will be used to make 
+             frame to GPS translation.
+             Swarm-dongle is expecting GPS location that we need to calculate based on where the object moves.
+             Will need to sample the GPS coordinate after we send swarm-dongle our calculated coordinate and updated global variable with 
+             what the swarm-dongle is providing us. 
 */
 
 std::mutex mtx;
@@ -39,6 +46,8 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
         // Calculate center of bbox
         int xc = (p1.x + p2.x) / 2;
         int yc = (p1.y + p2.y) / 2;
+        
+        // TODO: calculate updated GPS coordinate
 
         char loc[32];
         snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
@@ -47,6 +56,8 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
                                                             // only send updated coordinate information when it is beyond some threshold...
         
         // TODO: switch to transmitting frame that is outputted via tracking algorithm
+        
+        // TODO: sample GPS coordinate from swarm-dongle and update global shared variable
     }
 
     video.release();
