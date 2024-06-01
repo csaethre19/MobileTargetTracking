@@ -17,6 +17,8 @@
 
 #include "Camera.h"
 
+using namespace cv;
+
 //Test of writing raspi camera data ot the frame buffer of a headless mode raspi
 int main() {
     //-------------Setup Camera--------------------
@@ -63,13 +65,35 @@ int main() {
     // TODO: start transmitFrameThread
     // Create thread function that spins off and continuously 
     // calls video.read(frame) and transmits via frame buffer:
-    // Mat frame;
-    // while (video.read(frame)) 
-    // { 
-    //     // transmit frame 
+    
+    Mat frame(vinfo.yres, vinfo.xres, CV_16UC3); // Assuming the framebuffer uses 8-bit per channel RGB format
+    while (video.read(frame)) 
+    { 
+        // transmit frame 
+        // Fill the frame with some content (this is where you can capture or process your video frame)
+        //frame = imread("/home/charl/Desktop/asamplepicture.jpg"); // Replace with your video frame capture or generation logic
+        if (frame.empty()) {
+            printf("Error: cannot read image.\n");
+            munmap(fbp, screensize);
+            close(fbfd);
+            return(1);
+        }
+        printf("frame not empty\n");
+        // Resize the frame if necessary to fit the framebuffer
+        resize(frame, frame, Size(vinfo.xres, vinfo.yres));
+        printf("resized\n");
+        // Ensure the frame format matches the framebuffer format (BGR to RGB conversion if necessary)
+       // Mat frame_rgb;
+        //cvtColor(frame, frame_rgb, COLOR_BGR2RGB);
 
+        // Copy the frame data to the framebuffer
+        memcpy(fbp, frame.data, screensize);
+        printf("memcpy\n");
 
-    // }
-
+    }
+    
+    // Cleanup
+    munmap(fbp, screensize);
+    close(fbfd);
     return 0;
 }
