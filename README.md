@@ -5,7 +5,7 @@
 <img src="images/opencv.png" width="150" height="200" />
 <img src="images/drone.png" width="150" height="200" />
 <img src="images/raspi.png" width="250" height="200" />
-</div>div>
+</div>
 <hr>
 
 <p>This project explores the use of a Raspberry Pi 3B+, Camera module, Qt Desktop Application, and OpenCV tracking algorithms to acheive a mobile tracking system that interfaces with a drone.</p>
