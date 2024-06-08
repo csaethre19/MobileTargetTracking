@@ -1,10 +1,11 @@
 # Mobile Tracking System
 <p>This is a project for the University of Utah Computer Engineering Senior Capstone by Kirra Kotsenburg, Nicholas Ronnie, and Charlotte Saethre. </p>
 <hr>
+<div style="display: flex; justify-content: space-between;">
 <img src="images/opencv.png" width="150" height="200" />
 <img src="images/drone.png" width="150" height="200" />
 <img src="images/raspi.png" width="250" height="200" />
-
+</div>div>
 <hr>
 
 <p>This project explores the use of a Raspberry Pi 3B+, Camera module, Qt Desktop Application, and OpenCV tracking algorithms to acheive a mobile tracking system that interfaces with a drone.</p>
