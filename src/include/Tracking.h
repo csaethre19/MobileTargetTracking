@@ -1,3 +1,6 @@
+#ifndef TRACKING_H
+#define TRACKING_H
+
 #include <opencv2/core.hpp> // Core functionalities
 #include <opencv2/highgui.hpp> // High-level GUI
 #include <opencv2/imgproc.hpp> // Image processing
@@ -48,3 +51,5 @@ class Tracking {
     cv::VideoCapture video;
 
 };
+
+#endif

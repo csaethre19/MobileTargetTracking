@@ -1,3 +1,6 @@
+#ifndef UART_H
+#define UART_H
+
 #include <string.h>  // For strerror
 #include <fcntl.h>   // Contains file controls like O_RDWR
 #include <errno.h>   // Error integer and strerror() function
@@ -62,6 +65,8 @@ class SwarmUART : public UART {
     char ch;
 
 };
+
+#endif
 
 
 

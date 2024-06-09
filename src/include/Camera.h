@@ -1,3 +1,6 @@
+#ifndef CAMERA_H
+#define CAMERA_H
+
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
@@ -10,4 +13,6 @@ class Camera{
     cv::VideoCapture selectVideo(string videoPath="");
 
 };
+
+#endif
 
