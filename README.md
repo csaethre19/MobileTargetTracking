@@ -1,5 +1,5 @@
 # Mobile Tracking System
-<p>This is a project for the University of Utah Computer Engineering Senior Capstone by Kirra Kotsenburg, Nicholas Ronnie, and Charlotte Saethre. </p>
+<p>University of Utah Computer Engineering Senior Capstone by Kirra Kotsenburg, Nicholas Ronnie, and Charlotte Saethre. </p>
 <hr>
 <div style="display: flex; justify-content: space-between;">
 <img src="images/opencv.png" width="150" height="200" />
@@ -9,6 +9,8 @@
 <hr>
 
 <p>This project explores the use of a Raspberry Pi 3B+, Camera module, Qt Desktop Application, and OpenCV tracking algorithms to acheive a mobile tracking system that interfaces with a drone.</p>
+
+For video transmission we are using [AKK X2M 5.8Ghz Switchable FPV Transmitter](https://www.amazon.com/gp/product/B0773JVM8M/ref=ox_sc_act_image_1?smid=ADP3MHCS3NLR7&psc=1) and the [SoloGood FPV Receiver](https://www.amazon.com/gp/product/B08YJGCVJS/ref=ox_sc_act_image_2?smid=A2XZ0PQGR3TYBH&psc=1)
 
 This project works along side our TrackerApp project for the user desktop application which you can access [here](https://github.com/KirraKotsenburg/TrackerApp).
 
