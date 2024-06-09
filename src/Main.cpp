@@ -7,6 +7,7 @@
 
 #include "Camera.h"
 #include "UART.h"
+#include "VideoTransmitter.h"
 
 using namespace cv;
 
@@ -27,7 +28,19 @@ std::atomic<bool> continueTracking(true);
 std::atomic<bool> transmitTrackingFrame(false);
 
 
-void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) {
+void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
+{
+    cout << "Inside transmitterThread" << endl;
+    Mat frame;
+    while (video.read(frame) && !transmitTrackingFrame) {
+        vidTx.transmitFrame(frame);
+    }
+    cout << "Exiting transmitterThread" << endl;;
+}
+
+void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) 
+{
+    transmitTrackingFrame = true;
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
     Rect bbox(p1.x, p1.y, width, height);
@@ -76,7 +89,7 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
             if (ch == '\n') {
                 cout << "Received new command...\n";
                 std::lock_guard<std::mutex> lock(mtx);
-                buffer[cmdBufferPos] = '\0'; // Null-terminate the command string
+                buffer[cmdBufferPos] = '\0';
                 cout << "BUFFER: " << buffer << endl;
                 if (strncmp(buffer, "track-start", 11) == 0) {
                     // Extract coordinates of user selected region 
@@ -124,22 +137,14 @@ int main(int argc, char* argv[]) {
     if (argc > 1) videoPath = argv[1];
     // Run application without path argument to default to camera module
     cv::VideoCapture video = cam.selectVideo(videoPath);
-    Tracking tracker("MOSSE", MEDIUM, video);
 
+    VideoTransmitter vidTx(video);
+    std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
+    videoTxThread.detach(); // video thread runs independently
+
+    Tracking tracker("MOSSE", MEDIUM, video);
     Mat frame;
     bool ok = video.read(frame);
-    // TODO: start transmitFrameThread
-    // Create thread function that spins off and continuously 
-    // calls video.read(frame) and transmits via frame buffer:
-
-    //  while (video.read(frame) && !transmitTrackingFrame) 
-    //  { 
-    //      // transmit frame 
-    //  }
-
-    // When we receive a start-track command -> transmitTrackingFrame = true
-    // Transmitting will then take place in the trackThread to transmit the frame
-    // getting updated by the tracking algorithm
 
     int uart_fd = openUART("/dev/ttyS0");
 

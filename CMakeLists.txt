@@ -8,7 +8,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 include_directories(src/include)
 
-add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp)
+add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp)
 
 TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS})
 target_link_libraries(TestMain pthread)
