@@ -56,9 +56,12 @@ int VideoTransmitter::transmitFrame(cv::Mat frame)
     resize(frame, frame, Size(vinfo.xres, vinfo.yres));
     printf("resized frame\n");
 
+    // FIXME: color swapping taking place:
+    // blues and reds swapped - indicates misalignment issue when copying
+    // Also, laggy
     // Copy the frame data to the framebuffer
     for (int y = 0; y < vinfo.yres; y++) {
-        memcpy(fbp + y * finfo.line_length, frame.ptr(y), vinfo.xres * 2);
+        memcpy(fbp + y * finfo.line_length, frame.ptr(y), vinfo.xres * 4);
     }
     printf("copied frame data to framebuffer\n");
 
