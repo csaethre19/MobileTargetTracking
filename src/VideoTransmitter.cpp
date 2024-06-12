@@ -50,6 +50,8 @@ int VideoTransmitter::transmitFrame(cv::Mat frame)
     }
     printf("read frame successfully\n");
 
+    cv::cvtColor(frame, frame, cv::COLOR_BGR2BGRA);
+
     // Resize the frame if necessary to fit the framebuffer
     resize(frame, frame, Size(vinfo.xres, vinfo.yres));
     printf("resized frame\n");
