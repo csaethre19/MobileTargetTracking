@@ -17,6 +17,10 @@ add_executable(Temp src/webcam-demo.cpp src/Camera.cpp)
 
 TARGET_LINK_LIBRARIES(Temp ${OpenCV_LIBS})
 
+add_executable(DebugVideo src/DebugVideo.cpp src/Camera.cpp)
+
+TARGET_LINK_LIBRARIES(DebugVideo ${OpenCV_LIBS})
+
 add_executable(Grad src/GradiantScreen.cpp)
 
 TARGET_LINK_LIBRARIES(Grad ${OpenCV_LIBS})
