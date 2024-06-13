@@ -23,6 +23,7 @@ class VideoTransmitter{
     ~VideoTransmitter();
 
     int transmitFrame(cv::Mat frame);
+    void displayFramebufferInfo();
 
     private:
     cv::VideoCapture video;

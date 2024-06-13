@@ -143,8 +143,6 @@ int main(int argc, char* argv[]) {
     videoTxThread.detach(); // video thread runs independently
 
     Tracking tracker("MOSSE", MEDIUM, video);
-    Mat frame;
-    bool ok = video.read(frame);
 
     int uart_fd = openUART("/dev/ttyS0");
 
