@@ -50,6 +50,16 @@ This will execute the stop/disable getty commands for the ttyS0, cd into our pro
     git clone git@github.com:csaethre19/MobileTargetTracking.git
     ```
 
+### Camera Module
+
+Commands to get camera settings on Raspberry pi:
+```shell
+sudo apt-get install v4l-utils
+v4l2-ctl --list-formats-ext
+v4l2-ctl --set-fmt-video=width=1920,height=1080,pixelformat=BGR3
+v4l2-ctl --set-parm=30
+```
+
 ### OpenCV
 It is necessary to build OpenCV from source on the Raspberry Pi itself.
 Follow the instructions [here](https://qengineering.eu/install-opencv-on-raspberry-pi.html) to do this if you do not have OpenCV.
