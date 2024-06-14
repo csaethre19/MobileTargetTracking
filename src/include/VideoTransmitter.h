@@ -11,14 +11,12 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "Camera.h"
-
 
 int openFrameBuffer();
 
 class VideoTransmitter{
     public:
-    VideoTransmitter(cv::VideoCapture& video);
+    VideoTransmitter();
 
     ~VideoTransmitter();
 

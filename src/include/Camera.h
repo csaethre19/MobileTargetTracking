@@ -1,18 +1,11 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <opencv2/opencv.hpp>
+#include <raspicam/raspicam_cv.h>
 
-using namespace cv;
-using namespace std;
-
-
-class Camera{
-    public:
-
-    cv::VideoCapture selectVideo(string videoPath="");
-
+class Camera {
+public:
+    raspicam::RaspiCam_Cv selectVideo();
 };
 
 #endif
-

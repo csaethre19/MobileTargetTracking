@@ -30,7 +30,7 @@ Note* tracker.sh is a bash script (in progress) that will automate these command
 ```
 This will execute the stop/disable getty commands for the ttyS0, cd into our project and run the application. 
 
-### Set Up
+## Set Up
 1. Create SSH key on Raspberry Pi (Linux based system).
     In a terminal type the following command:
     ```shell
@@ -58,6 +58,18 @@ sudo apt-get install v4l-utils
 v4l2-ctl --list-formats-ext
 v4l2-ctl --set-fmt-video=width=1920,height=1080,pixelformat=BGR3
 v4l2-ctl --set-parm=30
+```
+
+Commands to get Raspicam library for new approach
+```shell
+cd ~
+git clone https://github.com/cedricve/raspicam
+cd raspicam
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
 ```
 
 ### OpenCV

@@ -11,10 +11,6 @@ void printFrameProperties(const Mat &frame, const string &label) {
     cout << "  Type: " << frame.type() << endl;
     cout << "  Depth: " << frame.depth() << endl;
     cout << "  Channels: " << frame.channels() << endl;
-    cout << "  ElemSize: " << frame.elemSize() << endl;
-    cout << "  ElemSize1: " << frame.elemSize1() << endl;
-    cout << "  Step: " << frame.step << endl;
-    cout << "  Step1: " << frame.step1() << endl;
 }
 
 void printPixelValues(const Mat &frame, const string &label, int numRows, int numCols) {

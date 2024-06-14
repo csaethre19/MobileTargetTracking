@@ -1,22 +1,31 @@
 #include "VideoTransmitter.h"
+#include <iostream>
+#include <cstdio>
+#include <cstring>
 
-VideoTransmitter::VideoTransmitter(cv::VideoCapture& video) : video(video)
+using namespace std;
+using namespace cv;
+
+VideoTransmitter::VideoTransmitter()
 {
     // Open the file for reading and writing
     fbfd = open("/dev/fb0", O_RDWR);
-    if (!fbfd) {
-        printf("Error: cannot open framebuffer device.\n");
+    if (fbfd == -1) {
+        perror("Error: cannot open framebuffer device");
+        exit(1);
     }
     printf("The framebuffer device was opened successfully.\n");
 
     // Get fixed screen information
     if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo)) {
-        printf("Error reading fixed information.\n");
+        perror("Error reading fixed information");
+        exit(2);
     } 
 
     // Get variable screen information
     if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo)) {
-        printf("Error reading variable information.\n");
+        perror("Error reading variable information");
+        exit(3);
     }
     printf("%dx%d, %d bpp\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
     printf("Line length: %d bytes\n", finfo.line_length);
@@ -28,15 +37,20 @@ VideoTransmitter::VideoTransmitter(cv::VideoCapture& video) : video(video)
     // Map framebuffer to user memory 
     fbp = (char*)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0);
     if (fbp == MAP_FAILED) {
-        printf("Error: failed to map framebuffer device to memory.\n");
+        perror("Error: failed to map framebuffer device to memory");
         close(fbfd);
+        exit(4);
     }
 }
 
 VideoTransmitter::~VideoTransmitter()
 {
-    munmap(fbp, screensize);
-    close(fbfd);
+    if (fbp != MAP_FAILED) {
+        munmap(fbp, screensize);
+    }
+    if (fbfd != -1) {
+        close(fbfd);
+    }
 }
 
 int VideoTransmitter::transmitFrame(cv::Mat frame)

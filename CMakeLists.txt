@@ -6,16 +6,24 @@ FIND_PACKAGE(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+include_directories(/usr/local/include)
+link_directories(/usr/local/lib)
+
 include_directories(src/include)
 
 add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp)
 
-TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS})
-target_link_libraries(TestMain pthread)
+TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} raspicam raspicam_cv pthread)
 
 add_executable(Temp src/webcam-demo.cpp src/Camera.cpp)
 
 TARGET_LINK_LIBRARIES(Temp ${OpenCV_LIBS})
+
+add_executable(CameraTest RaspicamTest.cpp)
+target_link_libraries(CameraTest ${OpenCV_LIBS} raspicam raspicam_cv)
+
+add_executable(Compare CompareFrames.cpp)
+target_link_libraries(Compare ${OpenCV_LIBS} raspicam raspicam_cv)
 
 add_executable(DebugVideo src/DebugVideo.cpp src/Camera.cpp)
 

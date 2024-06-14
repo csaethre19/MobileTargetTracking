@@ -28,14 +28,32 @@ std::atomic<bool> continueTracking(true);
 std::atomic<bool> transmitTrackingFrame(false);
 
 
-void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
+void transmitterThread(VideoTransmitter &vidTx, raspicam::RaspiCam_Cv &video) 
 {
     cout << "Inside transmitterThread" << endl;
     Mat frame;
-    while (video.read(frame) && !transmitTrackingFrame) {
-        vidTx.transmitFrame(frame);
+    while (true) {
+        cout << "Grabbing frame" << endl;
+        // if (!video.grab()) {
+        //     cerr << "Error grabbing frame" << endl;
+        //     continue;
+        // }
+        cout << "Retrieving frame" << endl;
+        video.retrieve(frame);
+        if (frame.empty()) {
+            cerr << "Error retrieving frame, frame is empty" << endl;
+            continue;
+        }
+        cout << "Transmitting frame" << endl;
+        if (vidTx.transmitFrame(frame) != 0) {
+            cerr << "Error transmitting frame" << endl;
+            continue;
+        }
+
+        // Add a short sleep to avoid consuming too much CPU
+        this_thread::sleep_for(chrono::milliseconds(30));
     }
-    cout << "Exiting transmitterThread" << endl;;
+    cout << "Exiting transmitterThread" << endl;
 }
 
 void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) 
@@ -136,19 +154,19 @@ int main(int argc, char* argv[]) {
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];
     // Run application without path argument to default to camera module
-    cv::VideoCapture video = cam.selectVideo(videoPath);
+    raspicam::RaspiCam_Cv video = cam.selectVideo();
 
-    VideoTransmitter vidTx(video);
+    VideoTransmitter vidTx;
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 
-    Tracking tracker("MOSSE", MEDIUM, video);
+    // Tracking tracker("MOSSE", MEDIUM, video);
 
     int uart_fd = openUART("/dev/ttyS0");
 
     // TODO: remove video as parameter to listenerThread - not needed!
-    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
-    listenerThread.join(); // This will keep main thread alive
+    // std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
+    // listenerThread.join(); // This will keep main thread alive
 
     close(uart_fd); // Close uart port
 
