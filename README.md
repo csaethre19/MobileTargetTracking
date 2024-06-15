@@ -60,6 +60,14 @@ v4l2-ctl --set-fmt-video=width=1920,height=1080,pixelformat=BGR3
 v4l2-ctl --set-parm=30
 ```
 
+### Transmitter
+```shell
+sudo nano /boot/config.txt
+```
+Underneath #hdmi_safe=1 add the following: <br>
+disable_overscan = 0 <br>
+enable_tvout=1 <br>
+
 ### OpenCV
 It is necessary to build OpenCV from source on the Raspberry Pi itself.
 Follow the instructions [here](https://qengineering.eu/install-opencv-on-raspberry-pi.html) to do this if you do not have OpenCV.
