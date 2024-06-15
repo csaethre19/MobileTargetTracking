@@ -99,3 +99,24 @@ For serial port ttyS0 wiring:
 <img src="images/pinout.png" width="350" height="400" />
 
 Note* The [TrackerApp desktop application](https://github.com/KirraKotsenburg/TrackerApp) replaces the use of this PuTTY setup but is here in case of testing purposes. 
+
+## Testing
+
+To use gtest testing framework set up with the following commands:
+
+```shell
+sudo apt-get update
+sudo apt-get install libgtest-dev
+cd /usr/src/gtest
+sudo cmake CMakeLists.txt
+sudo make
+sudo cp *.a /lib
+```
+To add tests in CMakeLists.txt:
+
+add_executable(<TestName> tests/<TestFile.cpp>) <br>
+target_link_libraries(<TestName> PRIVATE GTest::gtest GTest::gtest_main) <br>
+add_test(NAME my_test COMMAND <TestName>) <br>
+
+To run: <br>
+./\<TestName>
