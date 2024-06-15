@@ -20,7 +20,9 @@ To run in the current state:
 ```shell
 sudo systemctl stop serial-getty@ttyS0.service
 sudo systemctl disable serial-getty@ttyS0.service
-sudo ./TestMain ../src/walking.mp4
+cd build
+make
+sudo ./TestMain
 ```
 This will run the tracking application with a walking video to test the tracking capability and UART communication functionality. 
 
