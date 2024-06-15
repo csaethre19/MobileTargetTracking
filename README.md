@@ -96,4 +96,6 @@ For serial port ttyS0 wiring:
 - Connect RX pin on UART device to UART0_TXD on Raspberry Pi (pin 8).
 - Connect TX pin on UART device to UART0_RXD on Raspberry Pi (pin 10).
 
+<img src="images/pinout.png" width="350" height="400" />
+
 Note* The [TrackerApp desktop application](https://github.com/KirraKotsenburg/TrackerApp) replaces the use of this PuTTY setup but is here in case of testing purposes. 
