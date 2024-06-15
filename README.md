@@ -1,5 +1,5 @@
 # Mobile Tracking System
-<p>This is a project for the University of Utah Computer Engineering Senior Capstone by Kirra Kotsenburg, Nicholas Ronnie, and Charlotte Saethre. </p>
+<p>University of Utah Computer Engineering Senior Capstone by Kirra Kotsenburg, Nicholas Ronnie, and Charlotte Saethre. </p>
 <hr>
 <div style="display: flex; justify-content: space-between;">
 <img src="images/opencv.png" width="150" height="200" />
@@ -10,6 +10,8 @@
 
 <p>This project explores the use of a Raspberry Pi 3B+, Camera module, Qt Desktop Application, and OpenCV tracking algorithms to acheive a mobile tracking system that interfaces with a drone.</p>
 
+For video transmission we are using [AKK X2M 5.8Ghz Switchable FPV Transmitter](https://www.amazon.com/gp/product/B0773JVM8M/ref=ox_sc_act_image_1?smid=ADP3MHCS3NLR7&psc=1) and the [SoloGood FPV Receiver](https://www.amazon.com/gp/product/B08YJGCVJS/ref=ox_sc_act_image_2?smid=A2XZ0PQGR3TYBH&psc=1)
+
 This project works along side our TrackerApp project for the user desktop application which you can access [here](https://github.com/KirraKotsenburg/TrackerApp).
 
 ## Usage
@@ -18,7 +20,9 @@ To run in the current state:
 ```shell
 sudo systemctl stop serial-getty@ttyS0.service
 sudo systemctl disable serial-getty@ttyS0.service
-sudo ./TestMain ../src/walking.mp4
+cd build
+make
+sudo ./TestMain
 ```
 This will run the tracking application with a walking video to test the tracking capability and UART communication functionality. 
 
@@ -48,6 +52,24 @@ This will execute the stop/disable getty commands for the ttyS0, cd into our pro
     git clone git@github.com:csaethre19/MobileTargetTracking.git
     ```
 
+### Camera Module
+
+Commands to get camera settings on Raspberry pi:
+```shell
+sudo apt-get install v4l-utils
+v4l2-ctl --list-formats-ext
+v4l2-ctl --set-fmt-video=width=1920,height=1080,pixelformat=BGR3
+v4l2-ctl --set-parm=30
+```
+
+### Transmitter
+```shell
+sudo nano /boot/config.txt
+```
+Underneath #hdmi_safe=1 add the following: <br>
+disable_overscan = 0 <br>
+enable_tvout=1 <br>
+
 ### OpenCV
 It is necessary to build OpenCV from source on the Raspberry Pi itself.
 Follow the instructions [here](https://qengineering.eu/install-opencv-on-raspberry-pi.html) to do this if you do not have OpenCV.
@@ -76,4 +98,27 @@ For serial port ttyS0 wiring:
 - Connect RX pin on UART device to UART0_TXD on Raspberry Pi (pin 8).
 - Connect TX pin on UART device to UART0_RXD on Raspberry Pi (pin 10).
 
+<img src="images/pinout.png" width="350" height="400" />
+
 Note* The [TrackerApp desktop application](https://github.com/KirraKotsenburg/TrackerApp) replaces the use of this PuTTY setup but is here in case of testing purposes. 
+
+## Testing
+
+To use gtest testing framework set up with the following commands:
+
+```shell
+sudo apt-get update
+sudo apt-get install libgtest-dev
+cd /usr/src/gtest
+sudo cmake CMakeLists.txt
+sudo make
+sudo cp *.a /lib
+```
+To add tests in CMakeLists.txt:
+
+add_executable(\<TestName> tests/<TestFile.cpp>) <br>
+target_link_libraries(\<TestName> PRIVATE GTest::gtest GTest::gtest_main) <br>
+add_test(NAME my_test COMMAND \<TestName>) <br>
+
+To run: <br>
+./\<TestName>

@@ -1,3 +1,6 @@
+#ifndef UART_H
+#define UART_H
+
 #include <string.h>  // For strerror
 #include <fcntl.h>   // Contains file controls like O_RDWR
 #include <errno.h>   // Error integer and strerror() function
@@ -28,40 +31,9 @@
 
 using namespace std;
 
-
 int openUART(const char* port);
 
-
-
-class UART {
-    public:
-
-    void openUART(const char* serial_port);
-
-    virtual void processCommand() = 0; 
-    
-    protected:
-    
-    int uart_fd;
-
-};
-
-class SwarmUART : public UART {
-    public:
-
-    SwarmUART(Tracking tracker);
-    ~SwarmUART();
-
-    virtual void processCommand();
-
-    private:
-
-    Tracking tracker;
-    char buffer[128];
-    int cmdBufferPos = 0;
-    char ch;
-
-};
+#endif
 
 
 

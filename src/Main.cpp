@@ -7,19 +7,17 @@
 
 #include "Camera.h"
 #include "UART.h"
+#include "VideoTransmitter.h"
 
 using namespace cv;
 
 /*
     Testing notes: use following command from build folder to run
-    sudo ./TestMain ../src/walking.mp4
-    * 
-    TODO: 1. Upon initialization of drone need to request from swarm-dongle the initial position (magnetic heading and altituide)
-             as GPS coordinates. This will go into a global shared variable that will be used to make 
-             frame to GPS translation.
-             Swarm-dongle is expecting GPS location that we need to calculate based on where the object moves.
-             Will need to sample the GPS coordinate after we send swarm-dongle our calculated coordinate and updated global variable with 
-             what the swarm-dongle is providing us. 
+    sudo ./TestMain 
+    This will access camera, enter transmit video thread, enter listening commands thread,
+    and waits for commands to come in over uart.
+    Upon getting track-start command, initiates tracking and switches to transmitting
+    tracking frames.
 */
 
 std::mutex mtx;
@@ -27,7 +25,20 @@ std::atomic<bool> continueTracking(true);
 std::atomic<bool> transmitTrackingFrame(false);
 
 
-void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) {
+void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
+{
+    cout << "Starting to transmit video" << endl;
+    Mat frame;
+    while (video.read(frame) && !transmitTrackingFrame) {
+        vidTx.transmitFrame(frame);
+    }
+    cout << "Exiting transmitterThread" << endl;
+}
+
+void trackingThread(Tracking &tracker, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx) 
+{
+    cout << "Begin of transmitting tracking frames..." << endl;
+    transmitTrackingFrame = true;
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
     Rect bbox(p1.x, p1.y, width, height);
@@ -37,6 +48,7 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
         return;
     }
 
+    cout << "Begin Tracking" << endl;
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
         // Calculate top-left and bottom-right corners of bbox
@@ -55,18 +67,16 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
         int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
                                                             // only send updated coordinate information when it is beyond some threshold...
         
-        // TODO: switch to transmitting frame that is outputted via tracking algorithm
+        cout << "Transmitting tracking frame now..." << endl;
+        vidTx.transmitFrame(frame);
         
         // TODO: sample GPS coordinate from swarm-dongle and update global shared variable
     }
 
-    video.release();
-    destroyAllWindows();
-
     cout << "Tracking ended.\n";
 }
 
-void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video) {
+void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vidTx) {
     char ch;
     char buffer[256];
     int cmdBufferPos = 0;
@@ -76,7 +86,7 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
             if (ch == '\n') {
                 cout << "Received new command...\n";
                 std::lock_guard<std::mutex> lock(mtx);
-                buffer[cmdBufferPos] = '\0'; // Null-terminate the command string
+                buffer[cmdBufferPos] = '\0';
                 cout << "BUFFER: " << buffer << endl;
                 if (strncmp(buffer, "track-start", 11) == 0) {
                     // Extract coordinates of user selected region 
@@ -94,7 +104,7 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                         cout << "Initiating tracking...\n";
 
                         continueTracking = true; // Set tracking flag
-                        std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2);
+                        std::thread trackThread(trackingThread, std::ref(tracker), uart_fd, p1, p2, std::ref(vidTx));
                         trackThread.detach(); // Allow the thread to operate independently
                     }
                     else {
@@ -124,27 +134,16 @@ int main(int argc, char* argv[]) {
     if (argc > 1) videoPath = argv[1];
     // Run application without path argument to default to camera module
     cv::VideoCapture video = cam.selectVideo(videoPath);
-    Tracking tracker("MOSSE", MEDIUM, video);
 
-    Mat frame;
-    bool ok = video.read(frame);
-    // TODO: start transmitFrameThread
-    // Create thread function that spins off and continuously 
-    // calls video.read(frame) and transmits via frame buffer:
+    VideoTransmitter vidTx(video);
+    std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
+    videoTxThread.detach(); // video thread runs independently
 
-    //  while (video.read(frame) && !transmitTrackingFrame) 
-    //  { 
-    //      // transmit frame 
-    //  }
-
-    // When we receive a start-track command -> transmitTrackingFrame = true
-    // Transmitting will then take place in the trackThread to transmit the frame
-    // getting updated by the tracking algorithm
-
+    Tracking tracker("MOSSE", video);
+    
     int uart_fd = openUART("/dev/ttyS0");
 
-    // TODO: remove video as parameter to listenerThread - not needed!
-    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
+    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(vidTx));
     listenerThread.join(); // This will keep main thread alive
 
     close(uart_fd); // Close uart port
