@@ -35,11 +35,12 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
     while (video.read(frame) && !transmitTrackingFrame) {
         vidTx.transmitFrame(frame);
     }
-    cout << "Exiting transmitterThread" << endl;;
+    cout << "Exiting transmitterThread" << endl;
 }
 
-void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2) 
+void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx) 
 {
+    cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
@@ -50,6 +51,7 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
         return;
     }
 
+    cout << "Begin Tracking" << endl;
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
         // Calculate top-left and bottom-right corners of bbox
@@ -69,6 +71,8 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
                                                             // only send updated coordinate information when it is beyond some threshold...
         
         // TODO: switch to transmitting frame that is outputted via tracking algorithm
+        cout << "Transmitting tracking frame now..." << endl;
+        vidTx.transmitFrame(frame);
         
         // TODO: sample GPS coordinate from swarm-dongle and update global shared variable
     }
@@ -79,7 +83,7 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
     cout << "Tracking ended.\n";
 }
 
-void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video) {
+void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video, VideoTransmitter &vidTx) {
     char ch;
     char buffer[256];
     int cmdBufferPos = 0;
@@ -107,7 +111,7 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video)
                         cout << "Initiating tracking...\n";
 
                         continueTracking = true; // Set tracking flag
-                        std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2);
+                        std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2, std::ref(vidTx));
                         trackThread.detach(); // Allow the thread to operate independently
                     }
                     else {
@@ -147,7 +151,7 @@ int main(int argc, char* argv[]) {
     int uart_fd = openUART("/dev/ttyS0");
 
     // TODO: remove video as parameter to listenerThread - not needed!
-    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video));
+    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video), std::ref(vidTx));
     listenerThread.join(); // This will keep main thread alive
 
     close(uart_fd); // Close uart port
