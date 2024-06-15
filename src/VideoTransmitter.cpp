@@ -61,9 +61,6 @@ int VideoTransmitter::transmitFrame(cv::Mat frame)
     }
     // printf("copied frame data to framebuffer\n");
 
-    // Add delay if needed to control frame rate
-    // usleep(10000); // Adjust the delay as necessary
-
     return 0;
 }
 

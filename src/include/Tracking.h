@@ -12,20 +12,11 @@ using namespace cv;
 using namespace std;
 using namespace legacy;
 
-// Enum to specify frame size
-enum FrameSize { SMALL, MEDIUM, LARGE };
 
 class Tracking {
     public:
 
-    Tracking(const std::string& trackerType, FrameSize frameSize, cv::VideoCapture& video);
-
-    /*
-        Performs continuous tracking of user's selected target.
-        This contains initializing of tracker and continuous read method calls from video input.
-        This does not provide a way to extract the coordinate information of the updated object location within frame externally. 
-    */
-    void continuousTracking();
+    Tracking(const std::string& trackerType, cv::VideoCapture& video);
 
     /*
         Initializes tracker based on specified bounding box parameter (expected from UI via swarm-dongle).
@@ -42,12 +33,12 @@ class Tracking {
 
     private:
 
-    int frameWidth;
-    int frameHeight;
+    // Resolution NTSC expects for transmitting video
+    int frameWidth = 720;
+    int frameHeight = 480;
 
     Ptr<cv::Tracker> tracker;
     std::string trackerType;
-    FrameSize frameSize;
     cv::VideoCapture video;
 
 };

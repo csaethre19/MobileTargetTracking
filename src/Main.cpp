@@ -13,14 +13,11 @@ using namespace cv;
 
 /*
     Testing notes: use following command from build folder to run
-    sudo ./TestMain ../src/walking.mp4
-    * 
-    TODO: 1. Upon initialization of drone need to request from swarm-dongle the initial position (magnetic heading and altituide)
-             as GPS coordinates. This will go into a global shared variable that will be used to make 
-             frame to GPS translation.
-             Swarm-dongle is expecting GPS location that we need to calculate based on where the object moves.
-             Will need to sample the GPS coordinate after we send swarm-dongle our calculated coordinate and updated global variable with 
-             what the swarm-dongle is providing us. 
+    sudo ./TestMain 
+    This will access camera, enter transmit video thread, enter listening commands thread,
+    and waits for commands to come in over uart.
+    Upon getting track-start command, initiates tracking and switches to transmitting
+    tracking frames.
 */
 
 std::mutex mtx;
@@ -30,7 +27,7 @@ std::atomic<bool> transmitTrackingFrame(false);
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
 {
-    cout << "Inside transmitterThread" << endl;
+    cout << "Starting to transmit video" << endl;
     Mat frame;
     while (video.read(frame) && !transmitTrackingFrame) {
         vidTx.transmitFrame(frame);
@@ -38,7 +35,7 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
     cout << "Exiting transmitterThread" << endl;
 }
 
-void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx) 
+void trackingThread(Tracking &tracker, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx) 
 {
     cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
@@ -70,20 +67,16 @@ void trackingThread(Tracking &tracker, VideoCapture &video, int uart_fd, Point p
         int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
                                                             // only send updated coordinate information when it is beyond some threshold...
         
-        // TODO: switch to transmitting frame that is outputted via tracking algorithm
         cout << "Transmitting tracking frame now..." << endl;
         vidTx.transmitFrame(frame);
         
         // TODO: sample GPS coordinate from swarm-dongle and update global shared variable
     }
 
-    video.release();
-    destroyAllWindows();
-
     cout << "Tracking ended.\n";
 }
 
-void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video, VideoTransmitter &vidTx) {
+void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vidTx) {
     char ch;
     char buffer[256];
     int cmdBufferPos = 0;
@@ -111,7 +104,7 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoCapture &video,
                         cout << "Initiating tracking...\n";
 
                         continueTracking = true; // Set tracking flag
-                        std::thread trackThread(trackingThread, std::ref(tracker), std::ref(video), uart_fd, p1, p2, std::ref(vidTx));
+                        std::thread trackThread(trackingThread, std::ref(tracker), uart_fd, p1, p2, std::ref(vidTx));
                         trackThread.detach(); // Allow the thread to operate independently
                     }
                     else {
@@ -146,12 +139,11 @@ int main(int argc, char* argv[]) {
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 
-    Tracking tracker("MOSSE", MEDIUM, video);
-
+    Tracking tracker("MOSSE", video);
+    
     int uart_fd = openUART("/dev/ttyS0");
 
-    // TODO: remove video as parameter to listenerThread - not needed!
-    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(video), std::ref(vidTx));
+    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(vidTx));
     listenerThread.join(); // This will keep main thread alive
 
     close(uart_fd); // Close uart port

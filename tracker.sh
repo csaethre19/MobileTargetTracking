@@ -5,4 +5,4 @@
 sudo systemctl stop serial-getty@ttyS0.service
 sudo systemctl disable serial-getty@ttyS0.service
 cd Desktop/MobileTargetTracking/build
-sudo ./TestMain ../src/walking.mp4
+sudo ./TestMain
