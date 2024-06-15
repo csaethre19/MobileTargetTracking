@@ -114,9 +114,9 @@ sudo cp *.a /lib
 ```
 To add tests in CMakeLists.txt:
 
-add_executable(<TestName> tests/<TestFile.cpp>) <br>
-target_link_libraries(<TestName> PRIVATE GTest::gtest GTest::gtest_main) <br>
-add_test(NAME my_test COMMAND <TestName>) <br>
+add_executable(\<TestName> tests/<TestFile.cpp>) <br>
+target_link_libraries(\<TestName> PRIVATE GTest::gtest GTest::gtest_main) <br>
+add_test(NAME my_test COMMAND \<TestName>) <br>
 
 To run: <br>
 ./\<TestName>
