@@ -14,6 +14,8 @@ using namespace cv;
 /*
     Testing notes: use following command from build folder to run
     sudo ./TestMain 
+    or run sudo chmod 666 /dev/ttyS0
+    and then you don't need sudo to run
     This will access camera, enter transmit video thread, enter listening commands thread,
     and waits for commands to come in over uart.
     Upon getting track-start command, initiates tracking and switches to transmitting
@@ -135,7 +137,7 @@ int main(int argc, char* argv[]) {
     // Run application without path argument to default to camera module
     cv::VideoCapture video = cam.selectVideo(videoPath);
 
-    VideoTransmitter vidTx(video);
+    VideoTransmitter vidTx;
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 

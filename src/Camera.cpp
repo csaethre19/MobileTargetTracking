@@ -31,6 +31,8 @@ cv::VideoCapture Camera::selectVideo(string videoPath)
     else
     {
         video = cv::VideoCapture(videoPath);
+
+        cout << "video path: " << videoPath << endl;
         // check if opened
         if (!video.isOpened())
         {

@@ -18,15 +18,17 @@ int openFrameBuffer();
 
 class VideoTransmitter{
     public:
-    VideoTransmitter(cv::VideoCapture& video);
 
+    VideoTransmitter();
     ~VideoTransmitter();
 
     int transmitFrame(cv::Mat frame);
     void displayFramebufferInfo();
+    int getFbfb();
+    char *getFbp();
+    long int getScreensize();
 
     private:
-    cv::VideoCapture video;
 
     struct fb_var_screeninfo vinfo;
     struct fb_fix_screeninfo finfo;

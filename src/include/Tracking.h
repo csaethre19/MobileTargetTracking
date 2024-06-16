@@ -31,6 +31,8 @@ class Tracking {
     */
     bool trackerUpdate(cv::Rect& bbox, cv::Mat& frame);
 
+    string getTrackerType();
+
     private:
 
     // Resolution NTSC expects for transmitting video

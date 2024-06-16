@@ -62,6 +62,11 @@ Tracking::Tracking(const std::string &trackerType, cv::VideoCapture &video)
     cout << "Tracker created!" << endl;
 }
 
+string Tracking::getTrackerType()
+{
+    return trackerType;
+}
+
 Mat Tracking::initTracker(cv::Rect& bbox)
 {
     Mat frame;

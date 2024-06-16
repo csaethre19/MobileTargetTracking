@@ -1,6 +1,6 @@
 #include "VideoTransmitter.h"
 
-VideoTransmitter::VideoTransmitter(cv::VideoCapture& video) : video(video)
+VideoTransmitter::VideoTransmitter()
 {
     // Open the file for reading and writing
     fbfd = open("/dev/fb0", O_RDWR);
@@ -37,6 +37,21 @@ VideoTransmitter::~VideoTransmitter()
 {
     munmap(fbp, screensize);
     close(fbfd);
+}
+
+int VideoTransmitter::getFbfb()
+{
+    return fbfd;
+}
+
+char *VideoTransmitter::getFbp()
+{
+    return fbp;
+}
+
+long int VideoTransmitter::getScreensize()
+{
+    return screensize;
 }
 
 int VideoTransmitter::transmitFrame(cv::Mat frame)
