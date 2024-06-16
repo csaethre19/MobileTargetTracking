@@ -54,8 +54,8 @@ Ptr<cv::Tracker> getTracker(const string &trackerType)
     throw std::runtime_error("Unsupported tracker type");
 }
 
-Tracking::Tracking(const std::string &trackerType, cv::VideoCapture &video)
-    : trackerType(trackerType), video(video)
+Tracking::Tracking(const std::string &trackerType, cv::VideoCapture &video, std::shared_ptr<spdlog::logger> logger)
+    : trackerType(trackerType), video(video), logger(logger)
 {
     // Creates tracker
     tracker = getTracker(trackerType);

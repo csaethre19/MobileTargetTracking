@@ -1,6 +1,6 @@
 #include "VideoTransmitter.h"
 
-VideoTransmitter::VideoTransmitter(cv::VideoCapture& video) : video(video)
+VideoTransmitter::VideoTransmitter(std::shared_ptr<spdlog::logger> logger) : logger(logger)
 {
     // Open the file for reading and writing
     fbfd = open("/dev/fb0", O_RDWR);

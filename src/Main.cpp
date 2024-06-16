@@ -133,20 +133,20 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vi
 }
 
 int main(int argc, char* argv[]) {
-    Logger appLogger("app_logger", "logs/app_log.txt");
+    Logger appLogger("app_logger", "debug.log");
     auto logger = appLogger.getLogger();
 
-    Camera cam;
+    Camera cam(logger);
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];
     // Run application without path argument to default to camera module
     cv::VideoCapture video = cam.selectVideo(videoPath);
 
-    VideoTransmitter vidTx(video);
+    VideoTransmitter vidTx(logger);
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 
-    Tracking tracker("MOSSE", video);
+    Tracking tracker("MOSSE", video, logger);
     
     int uart_fd = openUART("/dev/ttyS0");
 

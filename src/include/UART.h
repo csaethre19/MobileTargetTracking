@@ -8,6 +8,7 @@
 #include <unistd.h>  // write(), read(), close()
 #include <vector>
 #include <iostream>
+#include "spdlog/spdlog.h" // TODO: make into simple class to inject logger
 
 #include "Tracking.h"
 

@@ -16,7 +16,7 @@ Logger::Logger(const std::string& loggerName, const std::string& logFile) {
     catch (const spdlog::spdlog_ex &ex) {
         std::cerr << "Log initialization failed: " << ex.what();
     }
-    }
+}
 
 std::shared_ptr<spdlog::logger> Logger::getLogger() {
     return logger;
