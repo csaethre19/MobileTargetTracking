@@ -11,6 +11,7 @@ include_directories(src/include)
 add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp)
 TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} pthread)
 
+
 # Testing Related:
 
 # Enable testing
@@ -20,10 +21,12 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
+# Example test:
 add_executable(SimpleMathTests tests/SimpleMathTests.cpp)
 target_link_libraries(SimpleMathTests PRIVATE GTest::gtest GTest::gtest_main)
 add_test(NAME my_test COMMAND SimpleMathTests)
 
+# MobileTargetTracking module tests:
 add_executable(CameraTests tests/TestCamera.cpp src/Camera.cpp)
 target_link_libraries(CameraTests PRIVATE GTest::gtest GTest::gtest_main ${OpenCV_LIBS})
 add_test(NAME camera_tests COMMAND CameraTests)
