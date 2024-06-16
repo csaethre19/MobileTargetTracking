@@ -5,9 +5,13 @@
 #include <sstream>
 #include <string>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
 #include "Camera.h"
 #include "UART.h"
 #include "VideoTransmitter.h"
+#include "Logger.h"
 
 using namespace cv;
 
@@ -129,6 +133,9 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vi
 }
 
 int main(int argc, char* argv[]) {
+    Logger appLogger("app_logger", "logs/app_log.txt");
+    auto logger = appLogger.getLogger();
+
     Camera cam;
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];

@@ -122,3 +122,15 @@ add_test(NAME my_test COMMAND \<TestName>) <br>
 
 To run: <br>
 ./\<TestName>
+
+## Logging
+```shell
+cd ~
+git clone https://github.com/gabime/spdlog.git
+cd spdlog
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+```
