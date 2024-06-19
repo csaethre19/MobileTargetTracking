@@ -148,7 +148,8 @@ int main(int argc, char* argv[]) {
 
     Tracking tracker("MOSSE", video, logger);
     
-    int uart_fd = openUART("/dev/ttyS0");
+    UART uart(logger, "/dev/ttyS0");
+    int uart_fd = uart.openUART();
 
     std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(vidTx));
     listenerThread.join(); // This will keep main thread alive

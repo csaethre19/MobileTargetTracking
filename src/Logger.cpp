@@ -3,7 +3,7 @@
 
 Logger::Logger(const std::string& loggerName, const std::string& logFile) {
     try {
-        logger = spdlog::basic_logger_mt(loggerName, "logs/" + logFile);
+        logger = spdlog::basic_logger_mt(loggerName, "logs/" + logFile, true);
         logger->set_level(spdlog::level::debug);
         // Set logger to automatically flush on all log levels
         logger->flush_on(spdlog::level::debug);

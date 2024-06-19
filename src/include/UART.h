@@ -32,7 +32,17 @@
 
 using namespace std;
 
-int openUART(const char* port);
+class UART {
+    public:
+
+    UART(std::shared_ptr<spdlog::logger> logger, const char* port);
+    int openUART();
+
+    private:
+
+    std::shared_ptr<spdlog::logger> logger;
+    const char* port;
+};
 
 #endif
 
