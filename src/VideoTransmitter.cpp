@@ -1,34 +1,34 @@
 #include "VideoTransmitter.h"
 
-VideoTransmitter::VideoTransmitter(cv::VideoCapture& video) : video(video)
+VideoTransmitter::VideoTransmitter(std::shared_ptr<spdlog::logger> logger) : logger(logger)
 {
     // Open the file for reading and writing
     fbfd = open("/dev/fb0", O_RDWR);
     if (!fbfd) {
-        printf("Error: cannot open framebuffer device.\n");
+        logger->error("Error: cannot open framebuffer device.");
     }
-    // printf("The framebuffer device was opened successfully.\n");
+    logger->info("The framebuffer device was opened successfully.");
 
     // Get fixed screen information
     if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo)) {
-        printf("Error reading fixed information.\n");
+        logger->error("Error reading fixed information.");
     } 
 
     // Get variable screen information
     if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo)) {
-        printf("Error reading variable information.\n");
+        logger->error("Error reading variable information.");
     }
-    // printf("%dx%d, %d bpp\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
-    // printf("Line length: %d bytes\n", finfo.line_length);
+    logger->info("Resolution: {}x{}, {} bpp", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
+    logger->info("Line length: {} bytes", finfo.line_length);
 
     // Calculate the screensize
     screensize = finfo.line_length * vinfo.yres;
-    // printf("Screensize: %ld bytes\n", screensize);
+    logger->info("Screensize: {} bytes", screensize);
 
     // Map framebuffer to user memory 
     fbp = (char*)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0);
     if (fbp == MAP_FAILED) {
-        printf("Error: failed to map framebuffer device to memory.\n");
+        logger->error("Error: failed to map framebuffer device to memory.");
         close(fbfd);
     }
 }
@@ -42,24 +42,21 @@ VideoTransmitter::~VideoTransmitter()
 int VideoTransmitter::transmitFrame(cv::Mat frame)
 {
     if (frame.empty()) {
-        printf("Error: cannot read image.\n");
+        logger->error("Error: cannot read image.");
         munmap(fbp, screensize);
         close(fbfd);
         return(1);
     }
-    // printf("read frame successfully\n");
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2BGRA);
 
     // Resize the frame if necessary to fit the framebuffer
     resize(frame, frame, Size(vinfo.xres, vinfo.yres), 0, 0, INTER_NEAREST);
-    // printf("resized frame\n");
 
     // Copy the frame data to the framebuffer
     for (int y = 0; y < vinfo.yres; y++) {
         memcpy(fbp + y * finfo.line_length, frame.ptr(y), vinfo.xres * 4);
     }
-    // printf("copied frame data to framebuffer\n");
 
     return 0;
 }

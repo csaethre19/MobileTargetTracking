@@ -10,6 +10,7 @@
 #include <linux/fb.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include "spdlog/spdlog.h"
 
 #include "Camera.h"
 
@@ -18,7 +19,7 @@ int openFrameBuffer();
 
 class VideoTransmitter{
     public:
-    VideoTransmitter(cv::VideoCapture& video);
+    VideoTransmitter(std::shared_ptr<spdlog::logger> logger);
 
     ~VideoTransmitter();
 
@@ -26,13 +27,14 @@ class VideoTransmitter{
     void displayFramebufferInfo();
 
     private:
-    cv::VideoCapture video;
 
     struct fb_var_screeninfo vinfo;
     struct fb_fix_screeninfo finfo;
     int fbfd = 0;
     char *fbp = 0;
     long int screensize = 0;
+
+    std::shared_ptr<spdlog::logger> logger;
 
 };
 

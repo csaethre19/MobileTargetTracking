@@ -7,6 +7,7 @@
 #include <opencv2/tracking.hpp> // Tracking API
 #include <opencv2/tracking/tracking_legacy.hpp> // Legacy tracking API
 #include <iostream>
+#include "spdlog/spdlog.h"
 
 using namespace cv;
 using namespace std;
@@ -16,7 +17,7 @@ using namespace legacy;
 class Tracking {
     public:
 
-    Tracking(const std::string& trackerType, cv::VideoCapture& video);
+    Tracking(const std::string& trackerType, cv::VideoCapture& video, std::shared_ptr<spdlog::logger> logger);
 
     /*
         Initializes tracker based on specified bounding box parameter (expected from UI via swarm-dongle).
@@ -40,6 +41,8 @@ class Tracking {
     Ptr<cv::Tracker> tracker;
     std::string trackerType;
     cv::VideoCapture video;
+
+    std::shared_ptr<spdlog::logger> logger;
 
 };
 

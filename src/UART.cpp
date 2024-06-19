@@ -1,23 +1,25 @@
 #include "UART.h"
 
 
-int openUART(const char* port)
+UART::UART(std::shared_ptr<spdlog::logger> logger, const char* port) : logger(logger), port(port) {}
+
+int UART::openUART()
 {
     // Open serial UART port
     int uart_fd = open(port, O_RDWR);
 
     if (uart_fd == -1) {
-        cerr << "Error - Unable to open UART." << endl;
+        logger->error("Error - Unable to open UART.");
     }
     else {
-        cout << "Successfully opened UART!" << endl;
+        logger->info("Successfully opened UART!");
     }
 
     struct termios tty;
 
     // Read in existing settings, and handle any error
     if(tcgetattr(uart_fd, &tty) != 0) {
-        cout << "Error " << errno << " from tcgetattr: " << strerror(errno) << endl;
+        logger->error("Error {} from tcgetattr: {}", errno, strerror(errno));
     }
 
     // https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
@@ -49,7 +51,7 @@ int openUART(const char* port)
 
     // Save tty settings, also checking for error
     if (tcsetattr(uart_fd, TCSANOW, &tty) != 0) {
-        cout << "Error " << errno << " from tcsetattr: " << strerror(errno) << endl;
+        logger->error("Error {} from tcsetattr: {}", errno, strerror(errno));
     }
 
     return uart_fd;

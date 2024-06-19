@@ -54,12 +54,12 @@ Ptr<cv::Tracker> getTracker(const string &trackerType)
     throw std::runtime_error("Unsupported tracker type");
 }
 
-Tracking::Tracking(const std::string &trackerType, cv::VideoCapture &video)
-    : trackerType(trackerType), video(video)
+Tracking::Tracking(const std::string &trackerType, cv::VideoCapture &video, std::shared_ptr<spdlog::logger> logger)
+    : trackerType(trackerType), video(video), logger(logger)
 {
     // Creates tracker
     tracker = getTracker(trackerType);
-    cout << "Tracker created!" << endl;
+    logger->info("Tracker created!");
 }
 
 Mat Tracking::initTracker(cv::Rect& bbox)
@@ -69,7 +69,7 @@ Mat Tracking::initTracker(cv::Rect& bbox)
 
     if (!ok)
     {
-        cout << "ERROR: Could not read frame" << endl;
+        logger->error("ERROR: Could not read frame");
         std::exit(EXIT_FAILURE);
     }
 
@@ -77,43 +77,39 @@ Mat Tracking::initTracker(cv::Rect& bbox)
     resize(frame, frame, Size(frameWidth, frameHeight));
 
     if (bbox.width >= frameWidth || bbox.height >= frameHeight) {
-        cout << "ROI outside of frame bounds\n";
+        logger->debug("ROI outside of frame bounds");
         return Mat(); // return empty frame - bbox outside of frame bounds
     }
     if (bbox.width <= 1 || bbox.height <= 1) {
-        cout << "ROI too small\n";
+        logger->debug("ROI too small");
         return Mat(); // return empty frame - too small of bbox
     }
 
     tracker->init(frame, bbox);
-    cout << "Tracker initialized with initial frame and bbox\n";
+    logger->info("Tracker initialized with initial frame and bbox");
 
     return frame;
 }
 
 bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
 {
-    cout << "Inside trackerUpdate" << endl;
     bool found = false;
 
     if (video.read(frame)) {
-        cout << "successfully read frame" << endl;
         resize(frame, frame, Size(frameWidth, frameHeight));
         found = tracker->update(frame, bbox);
         if (found)
         {
-            cout << "successfully found object within frame" << endl;
             // Tracking success: Draw the tracked object
             Point p1(cvRound(bbox.x), cvRound(bbox.y));                            // Top left corner
             Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height)); // Bottom right corner
             rectangle(frame, p1, p2, Scalar(255, 0, 0), 2, 1);
-            cout << "Added bbox to frame" << endl;
         }
         else
         {
-            cout << "did not find object in frame" << endl;
+            logger->debug("did not find object within frame.");
             // Tracking failure detected.
-            putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
+            putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2); // Does this show up in app when failure happens?
         }
 
         // Display tracker type on frame
@@ -121,7 +117,7 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
 
     }
     else {
-        cout << "Unable to read frame!\n";
+        logger->error("Unable to read frame!");
     }
 
     return found;

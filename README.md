@@ -122,3 +122,6 @@ add_test(NAME my_test COMMAND \<TestName>) <br>
 
 To run: <br>
 ./\<TestName>
+
+## Logging
+All log files will be found inside a logs folder within the build folder.

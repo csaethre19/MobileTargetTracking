@@ -8,8 +8,15 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 include_directories(src/include)
 
-add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp)
-TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} pthread)
+add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp src/Logger.cpp)
+TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} pthread spdlog::spdlog)
+
+# Logging:
+
+# Add spdlog
+add_subdirectory(third_party/spdlog)
+
+include_directories(third_party/spdlog/include)
 
 # Testing Related:
 

@@ -5,9 +5,13 @@
 #include <sstream>
 #include <string>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
 #include "Camera.h"
 #include "UART.h"
 #include "VideoTransmitter.h"
+#include "Logger.h"
 
 using namespace cv;
 
@@ -129,19 +133,23 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vi
 }
 
 int main(int argc, char* argv[]) {
-    Camera cam;
+    Logger appLogger("app_logger", "debug.log");
+    auto logger = appLogger.getLogger();
+
+    Camera cam(logger);
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];
     // Run application without path argument to default to camera module
     cv::VideoCapture video = cam.selectVideo(videoPath);
 
-    VideoTransmitter vidTx(video);
+    VideoTransmitter vidTx(logger);
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 
-    Tracking tracker("MOSSE", video);
+    Tracking tracker("MOSSE", video, logger);
     
-    int uart_fd = openUART("/dev/ttyS0");
+    UART uart(logger, "/dev/ttyS0");
+    int uart_fd = uart.openUART();
 
     std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(vidTx));
     listenerThread.join(); // This will keep main thread alive

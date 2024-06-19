@@ -8,6 +8,7 @@
 #include <unistd.h>  // write(), read(), close()
 #include <vector>
 #include <iostream>
+#include "spdlog/spdlog.h" // TODO: make into simple class to inject logger
 
 #include "Tracking.h"
 
@@ -31,7 +32,17 @@
 
 using namespace std;
 
-int openUART(const char* port);
+class UART {
+    public:
+
+    UART(std::shared_ptr<spdlog::logger> logger, const char* port);
+    int openUART();
+
+    private:
+
+    std::shared_ptr<spdlog::logger> logger;
+    const char* port;
+};
 
 #endif
 
