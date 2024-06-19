@@ -28,6 +28,14 @@ std::mutex mtx;
 std::atomic<bool> continueTracking(true);
 std::atomic<bool> transmitTrackingFrame(false);
 
+struct Position {
+    float lat;
+    float lon;
+};
+
+Position pos;
+std::mutex pos_mtx;
+
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
 {
@@ -121,6 +129,24 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vi
                 else if (strncmp(buffer, "track-end", 9) == 0) {
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
+                }
+                else if (strncmp(buffer, "R update-loc", 12) == 0) {
+                   string extractedString = &buffer[13];
+                    float lat, lon;
+                    std::istringstream stream(extractedString);
+                    if (stream >> lat >> lon) {
+                        cout << "lat: " << lat << " lon: " << lon << endl;
+                        std::lock_guard<std::mutex> lock(pos_mtx);
+                        pos.lat = lat;
+                        pos.lon = lon;
+                        cout << "pos.lat: " << pos.lat << " pos.lon: " << pos.lon << endl;
+                    }
+                    else {
+                        cout << "Unable to parse lat/lon from update-loc command\n";
+                        cmdBufferPos = 0;
+                        memset(buffer, 0, sizeof(buffer));
+                        continue; 
+                    }
                 }
                 cmdBufferPos = 0; // Reset the buffer position
                 memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
