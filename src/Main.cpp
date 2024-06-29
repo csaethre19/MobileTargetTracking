@@ -84,7 +84,7 @@ void trackingThread(Tracking &tracker, int uart_fd, Point p1, Point p2, VideoTra
     // need to start up transmitter thread and send track-end to app
     transmitTrackingFrame = false;
     char msg[32];
-    snprintf(msg, sizeof(msg), "track-end");
+    snprintf(msg, sizeof(msg), "track-fail");
     int num_wrBytes = write(uart_fd, msg, strlen(msg));
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
