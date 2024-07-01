@@ -11,6 +11,12 @@ include_directories(src/include)
 add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp src/Logger.cpp)
 TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} pthread spdlog::spdlog)
 
+# Include cmavlink headers
+include_directories(third_party/c_library_v2)
+
+add_executable(MAVLinkDemo src/DebugScripts/MAVLinkDemo.cpp)
+target_link_libraries(MAVLinkDemo cmavlink)
+
 # Logging:
 
 # Add spdlog
