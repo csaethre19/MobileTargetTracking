@@ -124,4 +124,14 @@ To run: <br>
 ./\<TestName>
 
 ## Logging
+Set up spdlog library:
+```shell
+cd third_party
+git clone https://github.com/gabime/spdlog.git
+cd spdlog
+mkdir build
+cd build
+cmake ..
+make
+```
 All log files will be found inside a logs folder within the build folder.

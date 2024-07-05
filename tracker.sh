@@ -4,5 +4,7 @@
 # To run: ./disable_serial_getty.sh
 sudo systemctl stop serial-getty@ttyS0.service
 sudo systemctl disable serial-getty@ttyS0.service
-cd Desktop/MobileTargetTracking/build
+cd build
+# cd Desktop/MobileTargetTracking/build
+make TestMain
 sudo ./TestMain

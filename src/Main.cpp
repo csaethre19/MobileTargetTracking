@@ -41,14 +41,18 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
 {
     cout << "Starting to transmit video" << endl;
     Mat frame;
-    while (video.read(frame) && !transmitTrackingFrame) {
+    cout << "transmit tracking frame flag: " << transmitTrackingFrame << endl;
+    int frameRead;
+    while ((frameRead = video.read(frame)) && !transmitTrackingFrame) {
         vidTx.transmitFrame(frame);
     }
+    cout << "frameRead: " << frameRead << endl;
     cout << "Exiting transmitterThread" << endl;
 }
 
-void trackingThread(Tracking &tracker, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx) 
+void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
+    Tracking tracker("MOSSE", video, logger);
     cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
     int width = p2.x - p1.x;
@@ -76,7 +80,7 @@ void trackingThread(Tracking &tracker, int uart_fd, Point p1, Point p2, VideoTra
         char loc[32];
         snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
         // Send updated coordinates to swarm-dongle
-        int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
+        // int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
                                                             // only send updated coordinate information when it is beyond some threshold...
         
         cout << "Transmitting tracking frame now..." << endl;
@@ -86,9 +90,16 @@ void trackingThread(Tracking &tracker, int uart_fd, Point p1, Point p2, VideoTra
     }
 
     cout << "Tracking ended.\n";
+    // need to start up transmitter thread and send track-end to app
+    transmitTrackingFrame = false;
+    char msg[32];
+    snprintf(msg, sizeof(msg), "track-fail\n");
+    int num_wrBytes = write(uart_fd, msg, strlen(msg));
+    std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
+    videoTxThread.detach(); // video thread runs independently
 }
 
-void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vidTx) {
+void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) {
     char ch;
     char buffer[256];
     int cmdBufferPos = 0;
@@ -101,6 +112,9 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vi
                 buffer[cmdBufferPos] = '\0';
                 cout << "BUFFER: " << buffer << endl;
                 if (strncmp(buffer, "track-start", 11) == 0) {
+                    // char msg[32];
+                    // snprintf(msg, sizeof(msg), "ACK\n");
+                    // int num_wrBytes = write(uart_fd, msg, strlen(msg));
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
                     string extractedString = &buffer[12];
@@ -116,7 +130,7 @@ void commandListeningThread(int uart_fd, Tracking &tracker, VideoTransmitter &vi
                         cout << "Initiating tracking...\n";
 
                         continueTracking = true; // Set tracking flag
-                        std::thread trackThread(trackingThread, std::ref(tracker), uart_fd, p1, p2, std::ref(vidTx));
+                        std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
                         trackThread.detach(); // Allow the thread to operate independently
                     }
                     else {
@@ -172,12 +186,12 @@ int main(int argc, char* argv[]) {
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 
-    Tracking tracker("MOSSE", video, logger);
+    // Tracking tracker("MOSSE", video, logger);
     
     UART uart(logger, "/dev/ttyS0");
     int uart_fd = uart.openUART();
 
-    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(tracker), std::ref(vidTx));
+    std::thread listenerThread(commandListeningThread, uart_fd, std::ref(logger), std::ref(vidTx), std::ref(video));
     listenerThread.join(); // This will keep main thread alive
 
     close(uart_fd); // Close uart port
