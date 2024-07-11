@@ -15,7 +15,6 @@ TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} pthread spdlog::spdlog)
 include_directories(third_party/c_library_v2)
 
 add_executable(MAVLinkDemo src/DebugScripts/MAVLinkDemo.cpp)
-target_link_libraries(MAVLinkDemo cmavlink)
 
 # Logging:
 
