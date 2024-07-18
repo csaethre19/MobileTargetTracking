@@ -9,7 +9,7 @@ int UART::openUART()
     int uart_fd = open(port, O_RDWR);
 
     if (uart_fd == -1) {
-        logger->error("Error - Unable to open UART.");
+        logger->error(std::string("Error - Unable to open UART. Error: ") + strerror(errno));
     }
     else {
         logger->info("Successfully opened UART!");

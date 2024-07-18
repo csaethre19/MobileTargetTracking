@@ -149,3 +149,7 @@ make clean
 cmake .
 make 
 ```
+If you see a Permission Denied error for UART in the logs:
+```shell
+sudo chmod 666 /dev/ttyS0
+```
