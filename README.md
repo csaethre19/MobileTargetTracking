@@ -141,3 +141,11 @@ cmake ..
 make
 ```
 All log files will be found inside a logs folder within the build folder.
+
+## Troubleshooting
+If you are having linking issues when compiling do the following:
+```shell
+make clean
+cmake .
+make 
+```
