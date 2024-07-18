@@ -78,7 +78,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         // TODO: calculate updated GPS coordinate
 
         char loc[32];
-        snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
+        snprintf(loc, sizeof(loc), "F update-loc %d %d", xc, yc);
         // Send updated coordinates to swarm-dongle
         // int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
                                                             // only send updated coordinate information when it is beyond some threshold...
@@ -93,7 +93,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // need to start up transmitter thread and send track-end to app
     transmitTrackingFrame = false;
     char msg[32];
-    snprintf(msg, sizeof(msg), "track-fail\n");
+    snprintf(msg, sizeof(msg), "D track-fail\n");
     int num_wrBytes = write(uart_fd, msg, strlen(msg));
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
@@ -111,7 +111,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0';
                 cout << "BUFFER: " << buffer << endl;
-                if (strncmp(buffer, "track-start", 11) == 0) {
+                if (strncmp(buffer, "R track-start", 13) == 0) {
                     // char msg[32];
                     // snprintf(msg, sizeof(msg), "ACK\n");
                     // int num_wrBytes = write(uart_fd, msg, strlen(msg));
@@ -140,11 +140,11 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                         continue;
                     }
                 }
-                else if (strncmp(buffer, "track-end", 9) == 0) {
+                else if (strncmp(buffer, "R track-end", 11) == 0) {
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
-                else if (strncmp(buffer, "R update-loc", 12) == 0) {
+                else if (strncmp(buffer, "F curr-loc", 10) == 0) {
                    string extractedString = &buffer[13];
                     float lat, lon;
                     std::istringstream stream(extractedString);
