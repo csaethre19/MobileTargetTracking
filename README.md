@@ -74,6 +74,12 @@ enable_tvout=1 <br>
 It is necessary to build OpenCV from source on the Raspberry Pi itself.
 Follow the instructions [here](https://qengineering.eu/install-opencv-on-raspberry-pi.html) to do this if you do not have OpenCV.
 
+### MAVLink
+```shell
+cd third_party
+git clone https://github.com/mavlink/c_library_v2.git
+```
+
 ### UART 
 #### Enable UART on Raspberry Pi for serial device ttyS0:
 ```shell
