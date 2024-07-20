@@ -111,13 +111,11 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0';
                 cout << "BUFFER: " << buffer << endl;
+                // From grond-station (user app)
                 if (strncmp(buffer, "R track-start", 13) == 0) {
-                    // char msg[32];
-                    // snprintf(msg, sizeof(msg), "ACK\n");
-                    // int num_wrBytes = write(uart_fd, msg, strlen(msg));
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                    string extractedString = &buffer[12];
+                    string extractedString = &buffer[14];
                     int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
                     if (stream >> x1 >> y1 >> x2 >> y2) {
@@ -144,8 +142,9 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
+                // From swarm-dongle
                 else if (strncmp(buffer, "F curr-loc", 10) == 0) {
-                   string extractedString = &buffer[13];
+                   string extractedString = &buffer[11];
                     float lat, lon;
                     std::istringstream stream(extractedString);
                     if (stream >> lat >> lon) {
@@ -185,8 +184,6 @@ int main(int argc, char* argv[]) {
     VideoTransmitter vidTx(logger);
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
-
-    // Tracking tracker("MOSSE", video, logger);
     
     UART uart(logger, "/dev/ttyS0");
     int uart_fd = uart.openUART();
