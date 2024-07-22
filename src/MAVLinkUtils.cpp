@@ -1,12 +1,5 @@
 #include "MAVLinkUtils.h"
-#include <cmath>
 
-
-// Center point to represent drone in middle of frame- frame buffer is 720,480
-const int CENTER_X = 360;
-const int CENTER_Y = 240;
-
-const double EARTH_RADIUS = 6371.0 * 1000.0; // Earth's radius in meters
 
 void parse_lat_lon(const std::vector<uint8_t>& buf) {
     mavlink_message_t msg;
@@ -33,7 +26,7 @@ void parse_lat_lon(const std::vector<uint8_t>& buf) {
     }
 }
 
-std::vector<uint8_t> create_gps_msg(double lat_input, double lon_input) {
+std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     // Create buffer for the message
     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
     mavlink_message_t msg; // create mavlink_message_t structure to hold message contents
@@ -75,25 +68,17 @@ std::vector<uint8_t> create_gps_msg(double lat_input, double lon_input) {
     return buf; // this gets passed over UART
 }
 
-double calculate_distance(int xc, int yc) {
-    return std::sqrt(std::pow(xc - CENTER_X, 2) + std::pow(yc - CENTER_Y, 2));
+float calculate_distance(int xc, int yc) {
+    // TODO
+    return 0;
 }
 
-// Convert radians to degrees
-double rad_to_degree(double radians) {
-    return radians * 180.0 / M_PI;
-}
-
-double calculate_updated_lat(double curr_lat, double distance) {
-    double curr_lat_rad = rad_to_degree(curr_lat);
-    new_lat = curr_lat_rad + (distance / (EARTH_RADIUS * cos(curr_lat_rad)));
-
+float calculate_updated_lat(float curr_lat, float distance) {
+    // TODO
     return curr_lat;
 }
 
-double calculate_updated_lon(double curr_lon, double distance) {
-    double curr_lon_rad = rad_to_degree(curr_lon);
-    new_lon = curr_lon_rad + (distance / (EARTH_RADIUS * cos(curr_lon_rad)));
-    
+float calculate_updated_lon(float curr_lon, float distance) {
+    // TODO
     return curr_lon;
 }
