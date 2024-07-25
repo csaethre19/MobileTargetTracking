@@ -1,28 +1,27 @@
 #include "MAVLinkUtils.h"
 
-std::tuple<double, double, double> parse_gps_msg(const std::vector<uint8_t>& buf) {
+std::tuple<double, double, double, double> parse_gps_msg(const std::vector<uint8_t>& buf) {
     mavlink_message_t msg;
     mavlink_status_t status;
 
     double lat = 0.0;
     double lon = 0.0;
     double yaw = 0.0;
+    double alt = 0.0;
 
     // Parse the MAVLink message from the buffer
     for (size_t i = 0; i < buf.size(); ++i) {
         if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
-            std::cout << "Successfully parsed message" << std::endl;
             // Message successfully parsed
             if (msg.msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
                 // Create a structure to hold the decoded message
                 mavlink_gps_raw_int_t gps_raw_int;
                 mavlink_msg_gps_raw_int_decode(&msg, &gps_raw_int);
 
-                // Extract latitude and longitude
+                // Extract latitude, longitude, altitude, and heading (yaw)
                 lat = gps_raw_int.lat / 1E7;
                 lon = gps_raw_int.lon / 1E7;
-
-                // Extract heading (yaw)
+                alt = gps_raw_int.alt / 1E3; // Altitude is in millimeters
                 yaw = gps_raw_int.cog / 100.0; // Heading is in centidegrees
             }
         }
@@ -31,8 +30,9 @@ std::tuple<double, double, double> parse_gps_msg(const std::vector<uint8_t>& buf
     std::cout << "lat: " << lat << std::endl;
     std::cout << "lon: " << lon << std::endl;
     std::cout << "yaw: " << yaw << std::endl;
+    std::cout << "alt: " << alt << std::endl;
 
-    return std::make_tuple(lat, lon, yaw);
+    return std::make_tuple(lat, lon, yaw, alt);
 }
 
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
@@ -49,7 +49,7 @@ std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     uint64_t time_usec = 0; // Timestamp (microseconds since UNIX epoch or system boot)
     int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
     int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
-    int32_t alt = 0; // Altitude in millimeters (placeholder value)
+    int32_t alt = 30; // Altitude in millimeters (placeholder value)
     uint16_t eph = UINT16_MAX; // GPS HDOP horizontal dilution of position (unitless). If unknown, set to UINT16_MAX
     uint16_t epv = UINT16_MAX; // GPS VDOP vertical dilution of position (unitless). If unknown, set to UINT16_MAX
     uint16_t vel = UINT16_MAX; // GPS ground speed in cm/s. If unknown, set to UINT16_MAX

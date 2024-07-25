@@ -26,7 +26,7 @@ int main() {
 
     // Create gps MAVLink message and send over UART
     std::vector<uint8_t> gps_msg = create_gps_msg(updated_lat, updated_lon);
-    auto [lat, lon, yaw] = parse_gps_msg(gps_msg);
-    // should print 40.76140, -111.918598
+    auto [lat, lon, yaw, alt] = parse_gps_msg(gps_msg);
+    // should print 40.76140, -111.918598 for lat/lon
     int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
 }
