@@ -1,13 +1,17 @@
 #include "MAVLinkUtils.h"
 
-
-void parse_lat_lon(const std::vector<uint8_t>& buf) {
+std::tuple<double, double, double> parse_gps_msg(const std::vector<uint8_t>& buf) {
     mavlink_message_t msg;
     mavlink_status_t status;
+
+    double lat = 0.0;
+    double lon = 0.0;
+    double yaw = 0.0;
 
     // Parse the MAVLink message from the buffer
     for (size_t i = 0; i < buf.size(); ++i) {
         if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
+            std::cout << "Successfully parsed message" << std::endl;
             // Message successfully parsed
             if (msg.msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
                 // Create a structure to hold the decoded message
@@ -15,15 +19,20 @@ void parse_lat_lon(const std::vector<uint8_t>& buf) {
                 mavlink_msg_gps_raw_int_decode(&msg, &gps_raw_int);
 
                 // Extract latitude and longitude
-                double lat = gps_raw_int.lat / 1E7;
-                double lon = gps_raw_int.lon / 1E7;
+                lat = gps_raw_int.lat / 1E7;
+                lon = gps_raw_int.lon / 1E7;
 
-                // Print latitude and longitude
-                std::cout << "Latitude: " << lat << std::endl;
-                std::cout << "Longitude: " << lon << std::endl;
+                // Extract heading (yaw)
+                yaw = gps_raw_int.cog / 100.0; // Heading is in centidegrees
             }
         }
     }
+
+    std::cout << "lat: " << lat << std::endl;
+    std::cout << "lon: " << lon << std::endl;
+    std::cout << "yaw: " << yaw << std::endl;
+
+    return std::make_tuple(lat, lon, yaw);
 }
 
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {

@@ -12,6 +12,7 @@
 #include "UART.h"
 #include "VideoTransmitter.h"
 #include "Logger.h"
+#include "MAVLinkUtils.h"
 
 using namespace cv;
 
@@ -143,26 +144,44 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
                 // From swarm-dongle
-                else if (strncmp(buffer, "F curr-loc", 10) == 0) {
-                   string extractedString = &buffer[11];
-                    float lat, lon;
-                    std::istringstream stream(extractedString);
-                    if (stream >> lat >> lon) {
-                        cout << "lat: " << lat << " lon: " << lon << endl;
-                        std::lock_guard<std::mutex> lock(pos_mtx);
-                        pos.lat = lat;
-                        pos.lon = lon;
-                        cout << "pos.lat: " << pos.lat << " pos.lon: " << pos.lon << endl;
-                    }
-                    else {
-                        cout << "Unable to parse lat/lon from update-loc command\n";
-                        cmdBufferPos = 0;
-                        memset(buffer, 0, sizeof(buffer));
-                        continue; 
-                    }
+                else if (strncmp(buffer, "R ", 2) == 0) {
+                    // Extract the MAVLink message part from the buffer
+                    std::vector<uint8_t> buf(buffer + 2, buffer + 2 + sizeof(buffer));
+
+                    auto [lat, lon, yaw] = parse_gps_msg(buf);
+
+                    std::cout << "Latitude: " << lat << std::endl;
+                    std::cout << "Longitude: " << lon << std::endl;
+                    std::cout << "Heading (Yaw): " << yaw << std::endl;
+
+                    // Add new values to shared variable
+                    std::lock_guard<std::mutex> lock(pos_mtx);
+                    pos.lat = lat;
+                    pos.lon = lon;
+                    // TODO: add heading field
+                    cout << "pos.lat: " << pos.lat << " pos.lon: " << pos.lon << endl;
                 }
-                cmdBufferPos = 0; // Reset the buffer position
-                memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
+            //     // From swarm-dongle
+            //     else if (strncmp(buffer, "F curr-loc", 10) == 0) {
+            //        string extractedString = &buffer[11];
+            //         float lat, lon;
+            //         std::istringstream stream(extractedString);
+            //         if (stream >> lat >> lon) {
+            //             cout << "lat: " << lat << " lon: " << lon << endl;
+            //             std::lock_guard<std::mutex> lock(pos_mtx);
+            //             pos.lat = lat;
+            //             pos.lon = lon;
+            //             cout << "pos.lat: " << pos.lat << " pos.lon: " << pos.lon << endl;
+            //         }
+            //         else {
+            //             cout << "Unable to parse lat/lon from update-loc command\n";
+            //             cmdBufferPos = 0;
+            //             memset(buffer, 0, sizeof(buffer));
+            //             continue; 
+            //         }
+            //     }
+            //     cmdBufferPos = 0; // Reset the buffer position
+            //     memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
             }
             else {
                 buffer[cmdBufferPos++] = ch; // Store command characters
