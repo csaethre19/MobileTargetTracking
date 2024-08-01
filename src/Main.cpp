@@ -39,6 +39,9 @@ struct Position {
 Position pos;
 std::mutex pos_mtx;
 
+uint8_t SYS_ID = 0;
+uint8_t COMP_ID = 0;
+
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
 {
@@ -55,6 +58,7 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
 
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
+    // TODO: send mavlink msg to set flight mode using SYS_ID and COMP_ID 
     Tracking tracker("MOSSE", video, logger);
     cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
@@ -150,7 +154,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     // Extract the MAVLink message part from the buffer
                     std::vector<uint8_t> buf(buffer + 2, buffer + 2 + sizeof(buffer));
 
-                    auto [lat, lon, yaw, alt] = parse_gps_msg(buf);
+                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buf);
 
                     std::cout << "Latitude: " << lat << std::endl;
                     std::cout << "Longitude: " << lon << std::endl;
@@ -163,6 +167,8 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     pos.lon = lon;
                     pos.yaw = yaw;
                     pos.alt = alt;
+                    SYS_ID = sysid;
+                    COMP_ID = compid;
 
                     // confirming struct pos updated accordingly
                     cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;

@@ -1,6 +1,6 @@
 #include "MAVLinkUtils.h"
 
-std::tuple<double, double, double, double> parse_gps_msg(const std::vector<uint8_t>& buf) {
+std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const std::vector<uint8_t>& buf) {
     mavlink_message_t msg;
     mavlink_status_t status;
 
@@ -8,6 +8,8 @@ std::tuple<double, double, double, double> parse_gps_msg(const std::vector<uint8
     double lon = 0.0;
     double yaw = 0.0;
     double alt = 0.0;
+    uint8_t sysid = 0;
+    uint8_t compid = 0;
 
     // Parse the MAVLink message from the buffer
     for (size_t i = 0; i < buf.size(); ++i) {
@@ -23,6 +25,10 @@ std::tuple<double, double, double, double> parse_gps_msg(const std::vector<uint8
                 lon = gps_raw_int.lon / 1E7;
                 alt = gps_raw_int.alt / 1E3; // Altitude is in millimeters
                 yaw = gps_raw_int.cog / 100.0; // Heading is in centidegrees
+
+                // Extract system and component IDs
+                sysid = msg.sysid;
+                compid = msg.compid;
             }
         }
     }
@@ -31,8 +37,10 @@ std::tuple<double, double, double, double> parse_gps_msg(const std::vector<uint8
     std::cout << "lon: " << lon << std::endl;
     std::cout << "yaw: " << yaw << std::endl;
     std::cout << "alt: " << alt << std::endl;
+    std::cout << "sysid: " << static_cast<int>(sysid) << std::endl;
+    std::cout << "compid: " << static_cast<int>(compid) << std::endl;
 
-    return std::make_tuple(lat, lon, yaw, alt);
+    return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
 }
 
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {

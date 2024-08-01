@@ -12,7 +12,7 @@ using namespace std;
     Given a buffer containing a formatted MAVLink packete,
     parses out the lat, lon, heading (yaw), and altituide contained in GPS message.
 */
-std::tuple<double, double, double, double> parse_gps_msg(const std::vector<uint8_t>& buf);
+std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const std::vector<uint8_t>& buf);
 
 /*
     Given a lattitude and longitude input, constructs GPS MAVLink packet.
