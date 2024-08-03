@@ -19,6 +19,8 @@ TARGET_LINK_LIBRARIES(MAVLinkTest pthread spdlog::spdlog)
 
 add_executable(MAVLinkDemo src/DebugScripts/MAVLinkDemo.cpp)
 
+add_executable(DistanceTest src/DebugScripts/DistanceTest.cpp)
+
 # Logging:
 
 # Add spdlog
