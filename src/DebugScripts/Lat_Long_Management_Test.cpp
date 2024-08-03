@@ -80,7 +80,7 @@ int lat_long_mod_test(double relative_target_yaw_deg, double target_offset_ft, d
 int main() {
     std::cout << "Beginning gps management test\n";
     double test_target_yaw = 290.0;
-    double test_target_dist = 70;
+    double test_target_dist = 500;
     //
     //Aircraft Values
     double test_aircraft_yaw = 150.0;
