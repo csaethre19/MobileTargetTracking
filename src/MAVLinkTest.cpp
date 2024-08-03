@@ -26,11 +26,11 @@ int main() {
     double test_aircraft_yaw = 150.0;
     double test_aircraft_lat = (40.7553044); // Latitude in degrees * 1E7
     double test_aircraft_lon = (-111.9304837); // Longitude in degrees * 1E7
-    
-    auto [updated_lat, updated_lon] = target_gps(test_target_yaw, test_target_dist, test_aircraft_yaw, test_aircraft_lat, test_aircraft_lon);
 
-    // // Create gps MAVLink message and send over UART
+    auto [updated_lat, updated_lon]  = target_gps(test_target_yaw, test_target_dist, test_aircraft_yaw, test_aircraft_lat, test_aircraft_lon);
+
+    // Create gps MAVLink message and send over UART
     std::vector<uint8_t> gps_msg = create_gps_msg(updated_lat, updated_lon);
-    auto [lat, lon, yaw, alt] = parse_gps_msg(gps_msg);
+    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(gps_msg);
     // int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
 }
