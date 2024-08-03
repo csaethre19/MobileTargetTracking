@@ -18,6 +18,9 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
     Given a lattitude and longitude input, constructs GPS MAVLink packet.
     Used to send over UART.
 */
+std::vector<uint8_t> create_target_gps_msg(float lat_input, float lon_input);
+
+
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input);
 
 /*

@@ -14,17 +14,19 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
     // Parse the MAVLink message from the buffer
     for (size_t i = 0; i < buf.size(); ++i) {
         if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
+            std::cout << "Parsed mavlink char\n";
             // Message successfully parsed
-            if (msg.msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
+            if (msg.msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
+                std::cout << "msg id was correct\n";
                 // Create a structure to hold the decoded message
-                mavlink_gps_raw_int_t gps_raw_int;
-                mavlink_msg_gps_raw_int_decode(&msg, &gps_raw_int); // TODO: need to update to use: global_position_int (33)
+                mavlink_global_position_int_t global_position_int;
+                mavlink_msg_global_position_int_decode(&msg, &global_position_int);
 
                 // Extract latitude, longitude, altitude, and heading (yaw)
-                lat = gps_raw_int.lat / 1E7;
-                lon = gps_raw_int.lon / 1E7;
-                alt = gps_raw_int.alt / 1E3; // Altitude is in millimeters
-                yaw = gps_raw_int.cog / 100.0; // Heading is in centidegrees
+                lat = global_position_int.lat / 1E7;
+                lon = global_position_int.lon / 1E7;
+                alt = global_position_int.relative_alt / 1E3; // Altitude is in millimeters
+                yaw = global_position_int.hdg / 100.0; // Heading is in centidegrees
 
                 // Extract system and component IDs
                 sysid = msg.sysid;
@@ -43,7 +45,6 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
     return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
 }
 
-// TODO: need to update to set_position_target_global_int (86)
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     // Create buffer for the message
     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
@@ -54,30 +55,21 @@ std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     uint8_t system_id = 1; // sets system ID for message
     uint8_t component_id = 200; // sets component ID for message - ID of the component sending the message (e.g., autopilot, gimbal, camera).
 
-    // Define GPS coordinates and other parameters
-    uint64_t time_usec = 0; // Timestamp (microseconds since UNIX epoch or system boot)
+    // Define target position and other parameters
+    uint32_t time_boot_ms = 0; // Timestamp (milliseconds since system boot)
     int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
     int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
-    int32_t alt = 30; // Altitude in millimeters (placeholder value)
-    uint16_t eph = UINT16_MAX; // GPS HDOP horizontal dilution of position (unitless). If unknown, set to UINT16_MAX
-    uint16_t epv = UINT16_MAX; // GPS VDOP vertical dilution of position (unitless). If unknown, set to UINT16_MAX
-    uint16_t vel = UINT16_MAX; // GPS ground speed in cm/s. If unknown, set to UINT16_MAX
-    int16_t cog = UINT16_MAX; // Course over ground (NOT heading, but direction of movement) in degrees * 100. If unknown, set to UINT16_MAX
-    uint8_t fix_type = 3; // 3D fix
-    uint8_t satellites_visible = UINT8_MAX; // Number of satellites visible. If unknown, set to UINT8_MAX
-    int32_t alt_ellipsoid = 0; // Altitude above ellipsoid in millimeters (placeholder value)
-    uint32_t h_acc = UINT32_MAX; // Horizontal position uncertainty in millimeters (placeholder value)
-    uint32_t v_acc = UINT32_MAX; // Vertical position uncertainty in millimeters (placeholder value)
-    uint32_t vel_acc = UINT32_MAX; // Speed uncertainty in cm/s (placeholder value)
-    uint32_t hdg_acc = UINT32_MAX; // Heading uncertainty in rad * 1e5 (placeholder value)
-    uint16_t yaw = UINT16_MAX; // Yaw angle in degrees * 100 (placeholder value)
+    int32_t alt = 30000; // Altitude in millimeters (placeholder value)
+    int32_t relative_alt = 30000; // Altitude relative to the home position in millimeters
+    int16_t vx = 0; // X velocity in cm/s (placeholder value)
+    int16_t vy = 0; // Y velocity in cm/s (placeholder value)
+    int16_t vz = 0; // Z velocity in cm/s (placeholder value)
+    uint16_t hdg = UINT16_MAX; // Heading in centidegrees (placeholder value)
 
-    // Pack the GPS_RAW_INT message
-    // mavlink_msg_gps_raw_int_pack() packs a GPS_RAW_INT message into the msg structure
-    mavlink_msg_gps_raw_int_pack(system_id, component_id, &msg, time_usec, fix_type, lat, lon, alt, eph, epv, vel, cog, satellites_visible, alt_ellipsoid, h_acc, v_acc, vel_acc, hdg_acc, yaw);
+    // Pack the GLOBAL_POSITION_INT message
+    mavlink_msg_global_position_int_pack(system_id, component_id, &msg, time_boot_ms, lat, lon, alt, relative_alt, vx, vy, vz, hdg);
 
     // Copy the message to the send buffer
-    // Serializes the packed MAVLink message into the buffer buf and returns the length of the serialized message
     len = mavlink_msg_to_send_buffer(buf.data(), &msg);
 
     // Resize the buffer to the actual length of the serialized message
@@ -85,6 +77,55 @@ std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
 
     return buf; // this gets passed over UART
 }
+
+
+
+std::vector<uint8_t> create_target_gps_msg(float lat_input, float lon_input) {
+    // Create buffer for the message
+    std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
+    mavlink_message_t msg; // create mavlink_message_t structure to hold message contents
+    uint16_t len; // var to hold length of serialized message
+
+    // Initialize the message
+    uint8_t system_id = 1; // sets system ID for message
+    uint8_t component_id = 200; // sets component ID for message - ID of the component sending the message (e.g., autopilot, gimbal, camera).
+
+    // Define target position and other parameters
+    uint32_t time_boot_ms = 0; // Timestamp (milliseconds since system boot)
+    uint8_t target_system = 1; // Target system ID
+    uint8_t target_component = 1; // Target component ID
+    uint8_t coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT; // Frame of reference
+
+    int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
+    int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
+    float alt = 30.0f; // Altitude in meters (placeholder value)
+    uint16_t yaw = UINT16_MAX; // Yaw angle in degrees * 100 (placeholder value)
+
+    // The following fields are required but will be set to zero or max value as placeholders
+    uint16_t type_mask = 0b0000111111000111; // Bitmask to indicate which dimensions should be ignored (use position only)
+    float vx = 0.0f; // X velocity in m/s (ignored)
+    float vy = 0.0f; // Y velocity in m/s (ignored)
+    float vz = 0.0f; // Z velocity in m/s (ignored)
+    float afx = 0.0f; // X acceleration/force (ignored)
+    float afy = 0.0f; // Y acceleration/force (ignored)
+    float afz = 0.0f; // Z acceleration/force (ignored)
+    float yaw_rate = 0.0f; // Yaw rate in rad/s (ignored)
+
+    std::cout << "lat: " << lat << " lon: " << lon << std::endl;
+
+    // Pack the SET_POSITION_TARGET_GLOBAL_INT message
+    mavlink_msg_set_position_target_global_int_pack(system_id, component_id, &msg, time_boot_ms, target_system, target_component, coordinate_frame, type_mask, lat, lon, alt, vx, vy, vz, afx, afy, afz, yaw, yaw_rate);
+
+    // Copy the message to the send buffer
+    len = mavlink_msg_to_send_buffer(buf.data(), &msg);
+
+    // Resize the buffer to the actual length of the serialized message
+    buf.resize(len);
+
+    return buf; // this gets passed over UART
+}
+
+
 
 std::tuple<double, double> target_gps(double relative_target_yaw_deg, double target_offset_ft, double aircraft_heading_yaw_deg, double aircraft_lat, double aircraft_lon) {
     const double deg_to_radian = 0.01745329251;
