@@ -6,6 +6,8 @@
 std::vector<uint8_t> set_flight_mode(uint8_t system_id, uint8_t component_id, uint8_t target_system, uint8_t target_component, uint32_t custom_mode) {
     mavlink_message_t msg;
     mavlink_command_long_t command_long;
+    std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN);
+    uint16_t len; 
 
     // Set the command parameters
     command_long.target_system = target_system;            // Target system ID (drone)
