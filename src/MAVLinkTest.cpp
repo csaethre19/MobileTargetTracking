@@ -18,15 +18,19 @@ int main() {
     int yc = (p1.y + p2.y) / 2;
     
     // Calculate distance and update lat/lon with starting hard-coded lat/lon values
-    double curr_lat = 40.75;
-    double curr_lon = -111.93;
-    double distance = calculate_distance(xc, yc);
-    double updated_lat = calculate_updated_lat(curr_lat, distance);
-    double updated_lon = calculate_updated_lon(curr_lon, distance);
+    double test_target_yaw = 290.0;
+    // double distance = calculate_distance(xc, yc);
+    double test_target_dist = 500;
+
+    //Aircraft Values
+    double test_aircraft_yaw = 150.0;
+    double test_aircraft_lat = (40.7553044); // Latitude in degrees * 1E7
+    double test_aircraft_lon = (-111.9304837); // Longitude in degrees * 1E7
+
+    auto [updated_lat, updated_lon]  = target_gps(test_target_yaw, test_target_dist, test_aircraft_yaw, test_aircraft_lat, test_aircraft_lon);
 
     // Create gps MAVLink message and send over UART
     std::vector<uint8_t> gps_msg = create_gps_msg(updated_lat, updated_lon);
-    auto [lat, lon, yaw, alt] = parse_gps_msg(gps_msg);
-    // should print 40.76140, -111.918598 for lat/lon
-    int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
+    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(gps_msg);
+    // int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
 }
