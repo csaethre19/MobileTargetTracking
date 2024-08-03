@@ -21,6 +21,8 @@ add_executable(MAVLinkDemo src/DebugScripts/MAVLinkDemo.cpp)
 
 add_executable(SetFlightMode src/DebugScripts/SetFlightMode.cpp)
 
+add_executable(GpsCalculation src/DebugScripts/Lat_Long_Management_Test.cpp)
+
 # Logging:
 
 # Add spdlog

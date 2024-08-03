@@ -18,7 +18,7 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
             if (msg.msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
                 // Create a structure to hold the decoded message
                 mavlink_gps_raw_int_t gps_raw_int;
-                mavlink_msg_gps_raw_int_decode(&msg, &gps_raw_int);
+                mavlink_msg_gps_raw_int_decode(&msg, &gps_raw_int); // TODO: need to update to use: global_position_int (33)
 
                 // Extract latitude, longitude, altitude, and heading (yaw)
                 lat = gps_raw_int.lat / 1E7;
@@ -43,6 +43,7 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
     return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
 }
 
+// TODO: need to update to set_position_target_global_int (86)
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     // Create buffer for the message
     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
@@ -83,6 +84,42 @@ std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     buf.resize(len);
 
     return buf; // this gets passed over UART
+}
+
+std::tuple<double, double> target_gps(double relative_target_yaw_deg, double target_offset_ft, double aircraft_heading_yaw_deg, double aircraft_lat, double aircraft_lon) {
+    const double deg_to_radian = 0.01745329251;
+    const double radian_to_deg = 57.2957795131;
+    const double R = 6371000.0;//earths radius in meters
+    
+    //Output Values
+    double true_target_yaw = 0.0;
+    double target_lat = 0.0;
+    double target_lon = 0.0;
+
+    printf("starting coords: %F, %F\n", aircraft_lat, aircraft_lon);
+
+    //convert lat, long to radians
+    aircraft_lat = aircraft_lat * deg_to_radian;
+    aircraft_lon = aircraft_lon * deg_to_radian;
+    //calculate the absolute heading of the target relative to 0 deg north
+    true_target_yaw = relative_target_yaw_deg + aircraft_heading_yaw_deg;
+    if(true_target_yaw > 360) true_target_yaw -= 360;
+    true_target_yaw = true_target_yaw * deg_to_radian;
+    //meters are used in calculation, convert target distance to meters
+    double target_offset_meter = target_offset_ft * 0.3048;
+    // Calculate the new latitude
+    double new_lat_rad = asin(sin(aircraft_lat) * cos(target_offset_meter / R) + cos(aircraft_lat) * sin(target_offset_meter / R) * cos(true_target_yaw));
+    
+    // Calculate the new longitude
+    double new_lon_rad = aircraft_lon + atan2(sin(true_target_yaw) * sin(target_offset_meter / R) * cos(aircraft_lat), cos(target_offset_meter / R) - sin(aircraft_lat) * sin(new_lat_rad));
+
+    //convert to degree values for target lat, lon
+    target_lat = new_lat_rad * radian_to_deg;
+    target_lon = new_lon_rad * radian_to_deg;
+
+    printf("calcualted coords: %F, %F\n", target_lat, target_lon);
+
+    return std::make_tuple(target_lat, target_lon);
 }
 
 float calculate_distance(int xc, int yc) {
