@@ -8,13 +8,21 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 include_directories(src/include)
 
-add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp src/Logger.cpp)
+add_executable(TestMain src/Main.cpp src/Tracking.cpp src/Camera.cpp src/UART.cpp src/VideoTransmitter.cpp src/Logger.cpp src/MAVLinkUtils.cpp)
 TARGET_LINK_LIBRARIES(TestMain ${OpenCV_LIBS} pthread spdlog::spdlog)
 
 # Include cmavlink headers
 include_directories(third_party/c_library_v2)
 
+add_executable(MAVLinkTest src/MAVLinkTest.cpp src/MAVLinkUtils.cpp src/UART.cpp src/Logger.cpp)
+TARGET_LINK_LIBRARIES(MAVLinkTest pthread spdlog::spdlog)
+
 add_executable(MAVLinkDemo src/DebugScripts/MAVLinkDemo.cpp)
+
+add_executable(DistanceTest src/DebugScripts/DistanceTest.cpp)
+add_executable(SetFlightMode src/DebugScripts/SetFlightMode.cpp)
+
+add_executable(GpsCalculation src/DebugScripts/Lat_Long_Management_Test.cpp)
 
 # Logging:
 

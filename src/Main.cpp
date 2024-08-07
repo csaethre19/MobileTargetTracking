@@ -12,6 +12,7 @@
 #include "UART.h"
 #include "VideoTransmitter.h"
 #include "Logger.h"
+#include "MAVLinkUtils.h"
 
 using namespace cv;
 
@@ -27,6 +28,19 @@ using namespace cv;
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
 std::atomic<bool> transmitTrackingFrame(false);
+
+struct Position {
+    double lat;
+    double lon;
+    double yaw;
+    double alt;
+};
+
+Position pos;
+std::mutex pos_mtx;
+
+uint8_t SYS_ID = 0;
+uint8_t COMP_ID = 0;
 
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
@@ -44,6 +58,7 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
 
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
+    // TODO: send mavlink msg to set flight mode using SYS_ID and COMP_ID 
     Tracking tracker("MOSSE", video, logger);
     cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
@@ -70,7 +85,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         // TODO: calculate updated GPS coordinate
 
         char loc[32];
-        snprintf(loc, sizeof(loc), "update-loc %d %d", xc, yc);
+        snprintf(loc, sizeof(loc), "F update-loc %d %d", xc, yc);
         // Send updated coordinates to swarm-dongle
         // int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
                                                             // only send updated coordinate information when it is beyond some threshold...
@@ -85,7 +100,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // need to start up transmitter thread and send track-end to app
     transmitTrackingFrame = false;
     char msg[32];
-    snprintf(msg, sizeof(msg), "track-fail\n");
+    snprintf(msg, sizeof(msg), "D track-fail\n");
     int num_wrBytes = write(uart_fd, msg, strlen(msg));
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
@@ -103,13 +118,11 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0';
                 cout << "BUFFER: " << buffer << endl;
-                if (strncmp(buffer, "track-start", 11) == 0) {
-                    // char msg[32];
-                    // snprintf(msg, sizeof(msg), "ACK\n");
-                    // int num_wrBytes = write(uart_fd, msg, strlen(msg));
+                // From grond-station (user app)
+                if (strncmp(buffer, "R track-start", 13) == 0) {
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                    string extractedString = &buffer[12];
+                    string extractedString = &buffer[14];
                     int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
                     if (stream >> x1 >> y1 >> x2 >> y2) {
@@ -132,12 +145,37 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                         continue;
                     }
                 }
-                else if (strncmp(buffer, "track-end", 9) == 0) {
+                else if (strncmp(buffer, "R track-end", 11) == 0) {
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
-                cmdBufferPos = 0; // Reset the buffer position
-                memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
+                // From swarm-dongle
+                else if (strncmp(buffer, "R ", 2) == 0) {
+                    // Extract the MAVLink message part from the buffer
+                    std::vector<uint8_t> buf(buffer + 2, buffer + 2 + sizeof(buffer));
+
+                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buf);
+
+                    std::cout << "Latitude: " << lat << std::endl;
+                    std::cout << "Longitude: " << lon << std::endl;
+                    std::cout << "Heading (Yaw): " << yaw << std::endl;
+                    std::cout << "Altituide: " << alt << std::endl;
+
+                    // Add new values to shared variable
+                    std::lock_guard<std::mutex> lock(pos_mtx);
+                    pos.lat = lat;
+                    pos.lon = lon;
+                    pos.yaw = yaw;
+                    pos.alt = alt;
+                    SYS_ID = sysid;
+                    COMP_ID = compid;
+
+                    // confirming struct pos updated accordingly
+                    cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
+
+                    cmdBufferPos = 0; // Reset the buffer position
+                    memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
+                }
             }
             else {
                 buffer[cmdBufferPos++] = ch; // Store command characters
@@ -159,8 +197,6 @@ int main(int argc, char* argv[]) {
     VideoTransmitter vidTx(logger);
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
-
-    // Tracking tracker("MOSSE", video, logger);
     
     UART uart(logger, "/dev/ttyS0");
     int uart_fd = uart.openUART();

@@ -141,3 +141,15 @@ cmake ..
 make
 ```
 All log files will be found inside a logs folder within the build folder.
+
+## Troubleshooting
+If you are having linking issues when compiling do the following:
+```shell
+make clean
+cmake .
+make 
+```
+If you see a Permission Denied error for UART in the logs:
+```shell
+sudo chmod 666 /dev/ttyS0
+```
