@@ -45,6 +45,7 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
     return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
 }
 
+// This is not going to be used at this time - does not use the right mavlink function
 std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     // Create buffer for the message
     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
@@ -78,8 +79,7 @@ std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
     return buf; // this gets passed over UART
 }
 
-
-
+// This is the mavlink message that will tell swarm where to tell the drone to go
 std::vector<uint8_t> create_target_gps_msg(float lat_input, float lon_input) {
     // Create buffer for the message
     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
@@ -124,8 +124,6 @@ std::vector<uint8_t> create_target_gps_msg(float lat_input, float lon_input) {
 
     return buf; // this gets passed over UART
 }
-
-
 
 std::tuple<double, double> target_gps(double relative_target_yaw_deg, double target_offset_ft, double aircraft_heading_yaw_deg, double aircraft_lat, double aircraft_lon) {
     const double deg_to_radian = 0.01745329251;

@@ -81,19 +81,30 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         // Calculate center of bbox
         int xc = (p1.x + p2.x) / 2;
         int yc = (p1.y + p2.y) / 2;
-        
-        // TODO: calculate updated GPS coordinate
 
-        char loc[32];
-        snprintf(loc, sizeof(loc), "F update-loc %d %d", xc, yc);
-        // Send updated coordinates to swarm-dongle
-        // int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
-                                                            // only send updated coordinate information when it is beyond some threshold...
+        double pixDistance = 0.0;
+        double distance = 0.0;
+        double angleInDegrees = 0.0;
+        // Calculate distance based on center point of updated bbox
+        calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
         
+        double lat_input = 0.0;
+        double lon_input = 0.0;
+        // Calculate target gps coordinates based on distance calculated
+        std::lock_guard<std::mutex> lock(pos_mtx);
+        auto [lat_input, lon_input] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
+        
+        // Create mavlink target gps message for payload
+        std::vector<uint8_t> gps_msg = create_target_gps_msg(float lat_input, float lon_input);
+
+        // TODO: Add header to payload
+
+        // Send payload to swarm-dongle
+        int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
+
         cout << "Transmitting tracking frame now..." << endl;
         vidTx.transmitFrame(frame);
         
-        // TODO: sample GPS coordinate from swarm-dongle and update global shared variable
     }
 
     cout << "Tracking ended.\n";
