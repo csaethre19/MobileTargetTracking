@@ -20,13 +20,15 @@ To run in the current state:
 ```shell
 sudo systemctl stop serial-getty@ttyS0.service
 sudo systemctl disable serial-getty@ttyS0.service
+sudo chmod 666 /dev/ttyS0
 cd build
 make
 sudo ./TestMain
 ```
-This will run the tracking application with a walking video to test the tracking capability and UART communication functionality. 
 
-Note* tracker.sh is a bash script (in progress) that will automate these commands and allow us to run this on power up for the final product. You can copy this bash script to your home directory and run it with 
+This will run our tracking application that opens a UART port and listens for commands. It will start transmitting camera frames right away. Upon receiving a `track-start` command it will enter a new thread that will start up the tracking process and switch to sending tracking frames. 
+
+Note* tracker.sh is a bash script that will automate these commands and allow us to run this on power up for the final product. Run in root project directory:
 ```shell
 ./tracker.sh
 ```
@@ -130,7 +132,8 @@ To run: <br>
 ./\<TestName>
 
 ## Logging
-Set up spdlog library:
+This is required to compile the project as we rely on injecting a logger into our different modules (i.e. Camera.cpp, Tracking.cpp, etc.) to better track bugs and issues.  <br><br>
+To set up spdlog library:
 ```shell
 cd third_party
 git clone https://github.com/gabime/spdlog.git
@@ -140,7 +143,7 @@ cd build
 cmake ..
 make
 ```
-All log files will be found inside a logs folder within the build folder.
+All log files will be found inside a `logs` folder within the build folder.
 
 ## Troubleshooting
 If you are having linking issues when compiling do the following:
