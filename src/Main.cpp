@@ -34,13 +34,13 @@ struct Position {
     double lon;
     double yaw;
     double alt;
+    uint8_t sys_id;
+    uint8_t comp_id;
 };
 
 Position pos;
 std::mutex pos_mtx;
 
-uint8_t SYS_ID = 0;
-uint8_t COMP_ID = 0;
 
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
@@ -58,7 +58,17 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
 
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
-    // TODO: send mavlink msg to set flight mode using SYS_ID and COMP_ID 
+    // Set flight mode to guided mode
+    string payload = ""; // EMPTY PAYLOAD
+    char msg_id = 'b';
+    size_t bufferSize = 5 + payload.size();
+    char fm_msg[bufferSize];
+
+    // TODO: Add header to payload
+
+    // Send payload to swarm-dongle
+    int num_wrBytes = write(uart_fd, fm_msg.data(), fm_msg.size());
+
     Tracking tracker("MOSSE", video, logger);
     cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
@@ -92,15 +102,20 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         double lon_input = 0.0;
         // Calculate target gps coordinates based on distance calculated
         std::lock_guard<std::mutex> lock(pos_mtx);
-        auto [lat_input, lon_input] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
+        auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
         
-        // Create mavlink target gps message for payload
-        std::vector<uint8_t> gps_msg = create_target_gps_msg(float lat_input, float lon_input);
+        // Format string with updated lat/lon
+        string target_lat_str = std::to_string(target_lat);
+        string target_lon_str = std::to_string(target_lon);
+        payload = target_lat_str + " " + target_lon_str;
+        msg_id = 'a';
+        bufferSize = 5 + payload.size();
+        char buffer[bufferSize];
 
         // TODO: Add header to payload
 
         // Send payload to swarm-dongle
-        int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
+        num_wrBytes = write(uart_fd, buffer, strlen(buffer));
 
         cout << "Transmitting tracking frame now..." << endl;
         vidTx.transmitFrame(frame);
@@ -160,8 +175,8 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
-                // From swarm-dongle
-                else if (strncmp(buffer, "R ", 2) == 0) {
+                // Gps Msv From swarm-dongle
+                else {
                     // Extract the MAVLink message part from the buffer
                     std::vector<uint8_t> buf(buffer + 2, buffer + 2 + sizeof(buffer));
 
@@ -178,8 +193,8 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     pos.lon = lon;
                     pos.yaw = yaw;
                     pos.alt = alt;
-                    SYS_ID = sysid;
-                    COMP_ID = compid;
+                    pos.sys_id = sysid;
+                    pos.comp_id = compid;
 
                     // confirming struct pos updated accordingly
                     cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
