@@ -98,24 +98,29 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         // Calculate distance based on center point of updated bbox
         calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
         
-        double lat_input = 0.0;
-        double lon_input = 0.0;
+        double target_lat = 0.0;
+        double target_lon = 0.0;
         // Calculate target gps coordinates based on distance calculated
         std::lock_guard<std::mutex> lock(pos_mtx);
         auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
         
-        // Format string with updated lat/lon
+        // TO BE REMOVED: updating lat/lon to target lat/lon that was calculated
+        pos.lat = target_lat;
+        pos.lon = target_lon;
+        ////////////////////////////////////////////////////////////////////////
+
+        // Format string with target lat/lon
         string target_lat_str = std::to_string(target_lat);
         string target_lon_str = std::to_string(target_lon);
         payload = target_lat_str + " " + target_lon_str;
         msg_id = 'a';
         bufferSize = 5 + payload.size();
-        char buffer[bufferSize];
+        char target_msg[bufferSize];
 
         // TODO: Add header to payload
 
         // Send payload to swarm-dongle
-        num_wrBytes = write(uart_fd, buffer, strlen(buffer));
+        num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
 
         cout << "Transmitting tracking frame now..." << endl;
         vidTx.transmitFrame(frame);
@@ -123,7 +128,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     }
 
     cout << "Tracking ended.\n";
-    // need to start up transmitter thread and send track-end to app
+    // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
     char msg[32];
     snprintf(msg, sizeof(msg), "D track-fail\n");
@@ -175,19 +180,19 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     cout << "Tracking stopping...\n";
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
-                // Gps Msv From swarm-dongle
+                // GPS Msg from swarm-dongle
                 else {
-                    // Extract the MAVLink message part from the buffer
-                    std::vector<uint8_t> buf(buffer + 2, buffer + 2 + sizeof(buffer));
+                    // Whatever is in the buffer is expected to be a mavlink gps msg sent from swarm-dongle
+                    // if it is not any of the other messages
+                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buffer);
 
-                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buf);
-
+                    std::cout << "Values parsed out from gps msg: " << std::endl;
                     std::cout << "Latitude: " << lat << std::endl;
                     std::cout << "Longitude: " << lon << std::endl;
                     std::cout << "Heading (Yaw): " << yaw << std::endl;
                     std::cout << "Altituide: " << alt << std::endl;
 
-                    // Add new values to shared variable
+                    // Add new values to shared variable representing position
                     std::lock_guard<std::mutex> lock(pos_mtx);
                     pos.lat = lat;
                     pos.lon = lon;
@@ -211,6 +216,13 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
 }
 
 int main(int argc, char* argv[]) {
+
+    // TO BE REMOVED: setting lat lon to hard-coded coordinates
+    pos.lat = 40.7553044
+    pos.lon = -111.9304837;
+    pos.yaw = 0.0; // not sure what this should be?
+    ///////////////////////////////////////////////////////////
+
     Logger appLogger("app_logger", "debug.log");
     auto logger = appLogger.getLogger();
 
