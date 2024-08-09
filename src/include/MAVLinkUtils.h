@@ -32,7 +32,7 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
     Based on center point of bounding box (xc, yc), calculates distance
     from center of video frame to this point.
 */
-float calculate_distance(int xc, int yc);
+void calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
 
 
 #endif

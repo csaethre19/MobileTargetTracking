@@ -135,7 +135,7 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
     double target_lat = 0.0;
     double target_lon = 0.0;
 
-    printf("starting coords: %F, %F\n", aircraft_lat, aircraft_lon);
+    printf("starting coords: lat=%F, lon=%F\n", aircraft_lat, aircraft_lon);
 
     //convert lat, long to radians
     aircraft_lat = aircraft_lat * deg_to_radian;
@@ -156,7 +156,7 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
     target_lat = new_lat_rad * radian_to_deg;
     target_lon = new_lon_rad * radian_to_deg;
 
-    printf("calcualted coords: %F, %F\n", target_lat, target_lon);
+    printf("calcualted coords: lat=%F, lon=%F\n", target_lat, target_lon);
 
     return std::make_tuple(target_lat, target_lon);
 }
@@ -194,9 +194,9 @@ void calculate_distance(int xc, int yc, double &pixDistance, double &distance, d
     }
 
     // Print the results
-    cout << "Distance: " << pixDistance << " pixels" << endl;
-    cout << "Distance: " << distance << " feet" << endl;
-    cout << "Angle: " << angleInDegrees << " degrees" << endl;
+    // cout << "Distance: " << pixDistance << " pixels" << endl;
+    // cout << "Distance: " << distance << " feet" << endl;
+    // cout << "Angle: " << angleInDegrees << " degrees" << endl;
 }
 
 float calculate_updated_lat(float curr_lat, float distance) {
