@@ -67,7 +67,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // TODO: Add header to payload
 
     // Send payload to swarm-dongle
-    int num_wrBytes = write(uart_fd, fm_msg.data(), fm_msg.size());
+    int num_wrBytes = write(uart_fd, fm_msg, strlen(fm_msg));
 
     Tracking tracker("MOSSE", video, logger);
     cout << "Begin of transmitting tracking frames..." << endl;
@@ -96,10 +96,8 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         double distance = 0.0;
         double angleInDegrees = 0.0;
         // Calculate distance based on center point of updated bbox
-        calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
+        calculate_distance(xc, yc, pixDistance, distance, angleInDegrees);
         
-        double target_lat = 0.0;
-        double target_lon = 0.0;
         // Calculate target gps coordinates based on distance calculated
         std::lock_guard<std::mutex> lock(pos_mtx);
         auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
@@ -132,7 +130,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     transmitTrackingFrame = false;
     char msg[32];
     snprintf(msg, sizeof(msg), "D track-fail\n");
-    int num_wrBytes = write(uart_fd, msg, strlen(msg));
+    num_wrBytes = write(uart_fd, msg, strlen(msg));
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 }
@@ -184,7 +182,8 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 else {
                     // Whatever is in the buffer is expected to be a mavlink gps msg sent from swarm-dongle
                     // if it is not any of the other messages
-                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buffer);
+                    std::vector<uint8_t> buf(buffer, buffer + sizeof(buffer));
+                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buf);
 
                     std::cout << "Values parsed out from gps msg: " << std::endl;
                     std::cout << "Latitude: " << lat << std::endl;
@@ -218,7 +217,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
 int main(int argc, char* argv[]) {
 
     // TO BE REMOVED: setting lat lon to hard-coded coordinates
-    pos.lat = 40.7553044
+    pos.lat = 40.7553044;
     pos.lon = -111.9304837;
     pos.yaw = 0.0; // not sure what this should be?
     ///////////////////////////////////////////////////////////
