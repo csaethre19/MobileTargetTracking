@@ -156,7 +156,12 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
     target_lat = new_lat_rad * radian_to_deg;
     target_lon = new_lon_rad * radian_to_deg;
 
-    printf("calcualted coords: lat=%F, lon=%F\n", target_lat, target_lon);
+    // TO BE REMOVED:
+    target_lat *= 0.25;
+    target_lon *= 0.25;
+    /////////////////
+
+    printf("%F,%Fred,marker,\n", target_lat, target_lon);
 
     return std::make_tuple(target_lat, target_lon);
 }
