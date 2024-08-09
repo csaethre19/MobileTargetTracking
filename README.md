@@ -135,6 +135,7 @@ To run: <br>
 This is required to compile the project as we rely on injecting a logger into our different modules (i.e. Camera.cpp, Tracking.cpp, etc.) to better track bugs and issues.  <br><br>
 To set up spdlog library:
 ```shell
+mkdir third_party
 cd third_party
 git clone https://github.com/gabime/spdlog.git
 cd spdlog

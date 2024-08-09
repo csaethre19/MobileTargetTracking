@@ -132,7 +132,8 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     videoTxThread.detach(); // video thread runs independently
 }
 
-void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) {
+void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) 
+{
     char ch;
     char buffer[256];
     int cmdBufferPos = 0;
@@ -173,9 +174,6 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
-                cmdBufferPos = 0;
-                memset(buffer, 0, sizeof(buffer));
-            }
                 // GPS Msg from swarm-dongle
                 else {
                     // Whatever is in the buffer is expected to be a mavlink gps msg sent from swarm-dongle
@@ -201,15 +199,16 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     // confirming struct pos updated accordingly
                     // cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
 
-                    cmdBufferPos = 0; // Reset the buffer position
-                    memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
                 }
+                cmdBufferPos = 0;
+                memset(buffer, 0, sizeof(buffer));
             }
             else {
                 buffer[cmdBufferPos++] = ch; // Store command characters
             }
         }
     }
+}
 
 int main(int argc, char* argv[]) {
 

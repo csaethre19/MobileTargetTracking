@@ -35,12 +35,12 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
         }
     }
 
-    std::cout << "lat: " << lat << std::endl;
-    std::cout << "lon: " << lon << std::endl;
-    std::cout << "yaw: " << yaw << std::endl;
-    std::cout << "alt: " << alt << std::endl;
-    std::cout << "sysid: " << static_cast<int>(sysid) << std::endl;
-    std::cout << "compid: " << static_cast<int>(compid) << std::endl;
+    // std::cout << "lat: " << lat << std::endl;
+    // std::cout << "lon: " << lon << std::endl;
+    // std::cout << "yaw: " << yaw << std::endl;
+    // std::cout << "alt: " << alt << std::endl;
+    // std::cout << "sysid: " << static_cast<int>(sysid) << std::endl;
+    // std::cout << "compid: " << static_cast<int>(compid) << std::endl;
 
     return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
 }
