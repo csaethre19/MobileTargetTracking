@@ -41,19 +41,20 @@ struct Position {
 Position pos;
 std::mutex pos_mtx;
 
+Logger appLogger("app_logger", "debug.log");
+auto logger = appLogger.getLogger();
+
 
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
 {
-    cout << "Starting to transmit video" << endl;
+    logger->debug("Transmitter Thread: Beginning to transmit video frames.");
     Mat frame;
-    cout << "transmit tracking frame flag: " << transmitTrackingFrame << endl;
     int frameRead;
     while ((frameRead = video.read(frame)) && !transmitTrackingFrame) {
         vidTx.transmitFrame(frame);
     }
-    cout << "frameRead: " << frameRead << endl;
-    cout << "Exiting transmitterThread" << endl;
+    logger->debug("Exiting Transmitter Thread.");
 }
 
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
@@ -67,21 +68,20 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // TODO: Add header to payload
 
     // Send payload to swarm-dongle
-    int num_wrBytes = write(uart_fd, fm_msg.data(), fm_msg.size());
+    int num_wrBytes = write(uart_fd, fm_msg, strlen(fm_msg));
 
     Tracking tracker("MOSSE", video, logger);
-    cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
     Rect bbox(p1.x, p1.y, width, height);
     Mat frame = tracker.initTracker(bbox);
     if (frame.empty()) {
-        cout << "tracker initialization failed.\n";
+        logger->error("Tracking Thread: Tracker initialization failed.");
         return;
     }
 
-    cout << "Begin Tracking" << endl;
+    logger->debug("Tracking Thread: Entering tracking process...");
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
         // Calculate top-left and bottom-right corners of bbox
@@ -96,10 +96,8 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         double distance = 0.0;
         double angleInDegrees = 0.0;
         // Calculate distance based on center point of updated bbox
-        calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
+        calculate_distance(xc, yc, pixDistance, distance, angleInDegrees);
         
-        double target_lat = 0.0;
-        double target_lon = 0.0;
         // Calculate target gps coordinates based on distance calculated
         std::lock_guard<std::mutex> lock(pos_mtx);
         auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
@@ -121,18 +119,15 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
 
         // Send payload to swarm-dongle
         num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
-
-        cout << "Transmitting tracking frame now..." << endl;
         vidTx.transmitFrame(frame);
-        
     }
 
-    cout << "Tracking ended.\n";
+    logger->debug("Tracking Thread: Tracking Ended.");
     // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
     char msg[32];
     snprintf(msg, sizeof(msg), "D track-fail\n");
-    int num_wrBytes = write(uart_fd, msg, strlen(msg));
+    num_wrBytes = write(uart_fd, msg, strlen(msg));
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 }
@@ -145,10 +140,10 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
     while (true) {
         if (read(uart_fd, &ch, 1) > 0) {
             if (ch == '\n') {
-                cout << "Received new command...\n";
+                logger->debug("Listening Thread: received new command.");
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0';
-                cout << "BUFFER: " << buffer << endl;
+                logger->debug("Listening Thread: contents of buffer={}", buffer);
                 // From grond-station (user app)
                 if (strncmp(buffer, "R track-start", 13) == 0) {
                     // Extract coordinates of user selected region 
@@ -163,34 +158,36 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                         Point p1(x1, y1); 
                         Point p2(x2, y2); 
 
-                        cout << "Initiating tracking...\n";
-
                         continueTracking = true; // Set tracking flag
                         std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
                         trackThread.detach(); // Allow the thread to operate independently
                     }
                     else {
-                        cout << "Unable to parse integers from track-start command\n";
+                        logger->error("Listening Thread: Unable to parse integers from track-start command.");
                         cmdBufferPos = 0;
                         memset(buffer, 0, sizeof(buffer));
                         continue;
                     }
                 }
                 else if (strncmp(buffer, "R track-end", 11) == 0) {
-                    cout << "Tracking stopping...\n";
+                    logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
+                cmdBufferPos = 0;
+                memset(buffer, 0, sizeof(buffer));
+            }
                 // GPS Msg from swarm-dongle
                 else {
                     // Whatever is in the buffer is expected to be a mavlink gps msg sent from swarm-dongle
                     // if it is not any of the other messages
-                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buffer);
+                    std::vector<uint8_t> buf(buffer, buffer + sizeof(buffer));
+                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buf);
 
-                    std::cout << "Values parsed out from gps msg: " << std::endl;
-                    std::cout << "Latitude: " << lat << std::endl;
-                    std::cout << "Longitude: " << lon << std::endl;
-                    std::cout << "Heading (Yaw): " << yaw << std::endl;
-                    std::cout << "Altituide: " << alt << std::endl;
+                    // std::cout << "Values parsed out from gps msg: " << std::endl;
+                    // std::cout << "Latitude: " << lat << std::endl;
+                    // std::cout << "Longitude: " << lon << std::endl;
+                    // std::cout << "Heading (Yaw): " << yaw << std::endl;
+                    // std::cout << "Altituide: " << alt << std::endl;
 
                     // Add new values to shared variable representing position
                     std::lock_guard<std::mutex> lock(pos_mtx);
@@ -202,7 +199,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     pos.comp_id = compid;
 
                     // confirming struct pos updated accordingly
-                    cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
+                    // cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
 
                     cmdBufferPos = 0; // Reset the buffer position
                     memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
@@ -213,18 +210,17 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             }
         }
     }
-}
 
 int main(int argc, char* argv[]) {
 
     // TO BE REMOVED: setting lat lon to hard-coded coordinates
-    pos.lat = 40.7553044
+    pos.lat = 40.7553044;
     pos.lon = -111.9304837;
     pos.yaw = 0.0; // not sure what this should be?
     ///////////////////////////////////////////////////////////
 
-    Logger appLogger("app_logger", "debug.log");
-    auto logger = appLogger.getLogger();
+    // Logger appLogger("app_logger", "debug.log");
+    // auto logger = appLogger.getLogger();
 
     Camera cam(logger);
     string videoPath = "";

@@ -59,7 +59,7 @@ Tracking::Tracking(const std::string &trackerType, cv::VideoCapture &video, std:
 {
     // Creates tracker
     tracker = getTracker(trackerType);
-    logger->info("Tracker created!");
+    logger->info("Tracking Module: Tracker created!");
 }
 
 Mat Tracking::initTracker(cv::Rect& bbox)
@@ -69,7 +69,7 @@ Mat Tracking::initTracker(cv::Rect& bbox)
 
     if (!ok)
     {
-        logger->error("ERROR: Could not read frame");
+        logger->error("Tracking Module: ERROR - Could not read frame in initTracker.");
         std::exit(EXIT_FAILURE);
     }
 
@@ -86,7 +86,7 @@ Mat Tracking::initTracker(cv::Rect& bbox)
     }
 
     tracker->init(frame, bbox);
-    logger->info("Tracker initialized with initial frame and bbox");
+    logger->info("Tracking Module: Tracker initialized with initial frame and bbox");
 
     return frame;
 }
@@ -107,7 +107,7 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
         }
         else
         {
-            logger->debug("did not find object within frame.");
+            logger->debug("Tracking Module: did not find object within frame, tracking has failed.");
             // Tracking failure detected.
             putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2); // Does this show up in app when failure happens?
         }
@@ -117,7 +117,7 @@ bool Tracking::trackerUpdate(cv::Rect& bbox, cv::Mat& frame)
 
     }
     else {
-        logger->error("Unable to read frame!");
+        logger->error("Tracking Module: Unable to read frame in trackerUpdate.");
     }
 
     return found;
