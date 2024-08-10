@@ -35,6 +35,15 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
         }
     }
 
+std::tuple<double, double, double> parse_custom_gps_data(const std::vector<uint8_t>& buf) {
+
+    double lat = 0.0;
+    double lon = 0.0;
+    double yaw
+
+
+}
+
     // std::cout << "lat: " << lat << std::endl;
     // std::cout << "lon: " << lon << std::endl;
     // std::cout << "yaw: " << yaw << std::endl;
@@ -145,7 +154,9 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
     if(true_target_yaw > 360) true_target_yaw -= 360;
     true_target_yaw = true_target_yaw * deg_to_radian;
     //meters are used in calculation, convert target distance to meters
-    double target_offset_meter = target_offset_ft * 0.3048;
+    //0.3048 for 50ft altitude
+
+    double target_offset_meter = target_offset_ft * 10.3048;
     // Calculate the new latitude
     double new_lat_rad = asin(sin(aircraft_lat) * cos(target_offset_meter / R) + cos(aircraft_lat) * sin(target_offset_meter / R) * cos(true_target_yaw));
     
@@ -156,10 +167,6 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
     target_lat = new_lat_rad * radian_to_deg;
     target_lon = new_lon_rad * radian_to_deg;
 
-    // TO BE REMOVED:
-    target_lat *= 0.25;
-    target_lon *= 0.25;
-    /////////////////
 
     printf("%F,%Fred,marker,\n", target_lat, target_lon);
 
@@ -212,8 +219,7 @@ float calculate_updated_lat(float curr_lat, float distance) {
 float calculate_updated_lon(float curr_lon, float distance) {
     // TODO
     return curr_lon;
-<<<<<<< Updated upstream
-=======
+
 }
 
 
@@ -250,17 +256,20 @@ void Payload_Prepare(const std::string& payload, char messageID, char* buffer) {
 WARNGING: THIS is extrememly specific to the packing of double lat, lon repsentations
 
 */
-std::string packDoubleToString(Double var1, Double var2) {
+std::string packDoubleToString(double var1, double var2) {
+    // Move the decimal point to the right by 7 digits and convert to int32_t
+    int32_t intVar1 = static_cast<int32_t>(std::round(var1 * 1e7));
+    int32_t intVar2 = static_cast<int32_t>(std::round(var2 * 1e7));
+
     // Create a string with enough space to hold the two int32_t variables
     std::string result;
     result.reserve(sizeof(int32_t) * 2);
     
     // Append the raw binary data of the first int32_t variable
-    result.append(reinterpret_cast<const char*>(&var1), sizeof(int32_t));
+    result.append(reinterpret_cast<const char*>(&intVar1), sizeof(int32_t));
     
     // Append the raw binary data of the second int32_t variable
-    result.append(reinterpret_cast<const char*>(&var2), sizeof(int32_t));
+    result.append(reinterpret_cast<const char*>(&intVar2), sizeof(int32_t));
     
     return result;
->>>>>>> Stashed changes
 }

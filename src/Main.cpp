@@ -36,6 +36,7 @@ struct Position {
     double alt;
     uint8_t sys_id;
     uint8_t comp_id;
+
 };
 
 Position pos;
@@ -60,13 +61,13 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
     // Set flight mode to guided mode
-    string payload = ""; // EMPTY PAYLOAD
+    string message_payload = ""; // EMPTY PAYLOAD
     char msg_id = 'b';
-    size_t bufferSize = 5 + payload.size();
+    size_t bufferSize = 5 + message_payload.size();
     char fm_msg[bufferSize];
 
     // TODO: Add header to payload
-
+    Payload_Prepare(message_payload, msg_id, fm_msg);
     // Send payload to swarm-dongle
     int num_wrBytes = write(uart_fd, fm_msg, strlen(fm_msg));
 
@@ -80,6 +81,8 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         logger->error("Tracking Thread: Tracker initialization failed.");
         return;
     }
+
+    uint16_t onehz_update_counter = 0;
 
     logger->debug("Tracking Thread: Entering tracking process...");
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
@@ -99,30 +102,37 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         calculate_distance(xc, yc, pixDistance, distance, angleInDegrees);
         
         // Calculate target gps coordinates based on distance calculated
-        std::lock_guard<std::mutex> lock(pos_mtx);
-        auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
+
+        //------------------ ~~~1 hz update to aircraft position, request updated position of airacraft at the same time------------------//
+        onehz_update_counter++;
+        if(onehz_update_counter > 20){
+            //prepare a payload into a string data type
+            std::lock_guard<std::mutex> lock(pos_mtx);
+            auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
         
-        // TO BE REMOVED: updating lat/lon to target lat/lon that was calculated
-        pos.lat = target_lat;
-        pos.lon = target_lon;
-        ////////////////////////////////////////////////////////////////////////
+            string message_payload = packDoubleToString(target_lat, target_lon);
+            //identify message id
+            msg_id = 'a';
+            //calculate required buffersize, allocate char array for buffer
+            bufferSize = 5 + message_payload.size();
+            char target_msg[bufferSize];
 
-        // Format string with target lat/lon
-        string target_lat_str = std::to_string(target_lat);
-        string target_lon_str = std::to_string(target_lon);
-        payload = target_lat_str + " " + target_lon_str;
-        msg_id = 'a';
-        bufferSize = 5 + payload.size();
-        char target_msg[bufferSize];
+            //Add header to message
+            Payload_Prepare(message_payload, msg_id, target_msg);
 
-        // TODO: Add header to payload
-<<<<<<< Updated upstream
+            // Send payload to swarm-dongle
+            num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
+            onehz_update_counter = 0;
 
-=======
-        Payload_Prepare(&message_payload, msg_id, &btarget_msg);
->>>>>>> Stashed changes
-        // Send payload to swarm-dongle
-        num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
+            message_payload = "";
+            msg_id = 'd';
+            bufferSize = 5;
+            char target_msg_requestpos[bufferSize];
+            Payload_Prepare(message_payload, msg_id, target_msg_requestpos);
+            num_wrBytes = write(uart_fd, target_msg_requestpos, strlen(target_msg_requestpos));
+            
+
+        }
         vidTx.transmitFrame(frame);
     }
 

@@ -33,4 +33,9 @@ int main() {
     std::vector<uint8_t> gps_msg = create_gps_msg(updated_lat, updated_lon);
     auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(gps_msg);
     // int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
+
+
+    
+
+
 }
