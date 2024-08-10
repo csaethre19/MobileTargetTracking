@@ -116,7 +116,11 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         char target_msg[bufferSize];
 
         // TODO: Add header to payload
+<<<<<<< Updated upstream
 
+=======
+        Payload_Prepare(&message_payload, msg_id, &btarget_msg);
+>>>>>>> Stashed changes
         // Send payload to swarm-dongle
         num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
         vidTx.transmitFrame(frame);
