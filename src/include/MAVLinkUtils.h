@@ -5,6 +5,8 @@
 #include <vector>
 #include <tuple>
 #include <common/mavlink.h>
+#include <cstdint>
+#include <cstring>
 
 using namespace std;
 
@@ -14,7 +16,7 @@ using namespace std;
 */
 std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const std::vector<uint8_t>& buf);
 
-std::tuple<double, double, double> parse_custom_gps_data(const std::vector<uint8_t>& buf);
+std::tuple<double, double, double> parse_custom_gps_data(const char buf[]);
 
 /*
     Given a lattitude and longitude input, constructs GPS MAVLink packet.
@@ -36,7 +38,7 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
 */
 void calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
 
-void Payload_Prepare(const std::string& payload, char messageID, char* buffer);
+void Payload_Prepare(const std::string& payload, char messageID, int uart_fd);
 
 std::string packDoubleToString(double var1, double var2);
 

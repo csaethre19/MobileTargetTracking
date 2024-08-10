@@ -60,16 +60,12 @@ void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video)
 
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
+    cout << "INSIDE TRACKING THREAD\n"; 
     // Set flight mode to guided mode
     string message_payload = ""; // EMPTY PAYLOAD
     char msg_id = 'b';
-    size_t bufferSize = 5 + message_payload.size();
-    char fm_msg[bufferSize];
 
-    // TODO: Add header to payload
-    Payload_Prepare(message_payload, msg_id, fm_msg);
-    // Send payload to swarm-dongle
-    int num_wrBytes = write(uart_fd, fm_msg, strlen(fm_msg));
+    Payload_Prepare(message_payload, msg_id, uart_fd);
 
     Tracking tracker("MOSSE", video, logger);
     transmitTrackingFrame = true;
@@ -106,42 +102,41 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         //------------------ ~~~1 hz update to aircraft position, request updated position of airacraft at the same time------------------//
         onehz_update_counter++;
         if(onehz_update_counter > 20){
+            cout << "one hz update if statement entered" << endl;
             //prepare a payload into a string data type
             std::lock_guard<std::mutex> lock(pos_mtx);
             auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
-        
             string message_payload = packDoubleToString(target_lat, target_lon);
             //identify message id
             msg_id = 'a';
-            //calculate required buffersize, allocate char array for buffer
-            bufferSize = 5 + message_payload.size();
-            char target_msg[bufferSize];
+            Payload_Prepare(message_payload, msg_id, uart_fd);
 
-            //Add header to message
-            Payload_Prepare(message_payload, msg_id, target_msg);
-
-            // Send payload to swarm-dongle
-            num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
             onehz_update_counter = 0;
 
             message_payload = "";
             msg_id = 'd';
-            bufferSize = 5;
-            char target_msg_requestpos[bufferSize];
-            Payload_Prepare(message_payload, msg_id, target_msg_requestpos);
-            num_wrBytes = write(uart_fd, target_msg_requestpos, strlen(target_msg_requestpos));
+            Payload_Prepare(message_payload, msg_id, uart_fd);
+
             
 
         }
         vidTx.transmitFrame(frame);
     }
 
+    // Set flight mode to loiter mode
+    message_payload = ""; // EMPTY PAYLOAD
+    msg_id = 'c';
+
+    Payload_Prepare(message_payload, msg_id, uart_fd);
+
     logger->debug("Tracking Thread: Tracking Ended.");
     // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
-    char msg[32];
-    snprintf(msg, sizeof(msg), "D track-fail\n");
-    num_wrBytes = write(uart_fd, msg, strlen(msg));
+
+    msg_id = 'g';
+    string trackfailstring = "D track-fail\n";
+    Payload_Prepare(trackfailstring, msg_id, uart_fd);
+
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 }
@@ -158,12 +153,14 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 logger->debug("Listening Thread: received new command.");
                 std::lock_guard<std::mutex> lock(mtx);
                 buffer[cmdBufferPos] = '\0';
-                logger->debug("Listening Thread: contents of buffer={}", buffer);
+                char* buf = &buffer[5];
+                logger->debug("Listening Thread: contents of buffer={}", buf);
+
                 // From grond-station (user app)
-                if (strncmp(buffer, "R track-start", 13) == 0) {
+                if (strncmp(buf, "R track-start", 13) == 0) {
                     // Extract coordinates of user selected region 
                     // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                    string extractedString = &buffer[14];
+                    string extractedString = &buf[14];
                     int x1, y1, x2, y2;
                     std::istringstream stream(extractedString);
                     if (stream >> x1 >> y1 >> x2 >> y2) {
@@ -184,12 +181,16 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                         continue;
                     }
                 }
-                else if (strncmp(buffer, "R track-end", 11) == 0) {
+                else if (strncmp(buf, "R track-end", 11) == 0) {
                     logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
                     continueTracking = false; // Clear tracking flag to stop the thread
                 }
                 // GPS Msg from swarm-dongle
                 else {
+                    //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
+                    // std::vector<uint8_t> buf(buffer, buffer + sizeof(buffer));
+                    auto [lat, lon, yaw] = parse_custom_gps_data(buf);
+                    /*
                     // Whatever is in the buffer is expected to be a mavlink gps msg sent from swarm-dongle
                     // if it is not any of the other messages
                     std::vector<uint8_t> buf(buffer, buffer + sizeof(buffer));
@@ -212,7 +213,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
 
                     // confirming struct pos updated accordingly
                     // cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
-
+                    */
                 }
                 cmdBufferPos = 0;
                 memset(buffer, 0, sizeof(buffer));

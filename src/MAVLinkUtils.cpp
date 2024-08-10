@@ -1,4 +1,5 @@
 #include "MAVLinkUtils.h"
+#include "UART.h"
 
 std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const std::vector<uint8_t>& buf) {
     mavlink_message_t msg;
@@ -35,15 +36,6 @@ std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const
         }
     }
 
-std::tuple<double, double, double> parse_custom_gps_data(const std::vector<uint8_t>& buf) {
-
-    double lat = 0.0;
-    double lon = 0.0;
-    double yaw
-
-
-}
-
     // std::cout << "lat: " << lat << std::endl;
     // std::cout << "lon: " << lon << std::endl;
     // std::cout << "yaw: " << yaw << std::endl;
@@ -52,6 +44,29 @@ std::tuple<double, double, double> parse_custom_gps_data(const std::vector<uint8
     // std::cout << "compid: " << static_cast<int>(compid) << std::endl;
 
     return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
+}
+
+std::tuple<double, double, double> parse_custom_gps_data(const char buf[]) {
+    // buf contains int32_t - lat, int32_t - lon, uint16_t - yaw + \n;
+
+    int32_t temp_lat = 0;
+    int32_t temp_lon = 0;
+    uint16_t temp_yaw = 0;
+
+    // Copying bytes from buf to the respective variables
+    std::memcpy(&temp_lat, &buf[0], sizeof(int32_t));
+    std::memcpy(&temp_lon, &buf[4], sizeof(int32_t));
+    std::memcpy(&temp_yaw, &buf[8], sizeof(uint16_t));
+
+    cout << "BEFORE lat: " << temp_lat << " lon: " << temp_lon << " yaw: " << temp_yaw << endl;
+
+
+    // Converting to desired units
+    double lat = temp_lat / 1E7;
+    double lon = temp_lon / 1E7;
+    double yaw = temp_yaw / 100.0;
+
+    return std::make_tuple(lat, lon, yaw);    
 }
 
 // This is not going to be used at this time - does not use the right mavlink function
@@ -230,16 +245,24 @@ The payload is a series of arbitrary bytes, total bytes in payload must be less 
 messageID should match the purpose of the message, as defined by external documentation
 
 */
-void Payload_Prepare(const std::string& payload, char messageID, char* buffer) {
+void Payload_Prepare(const std::string& payload, char messageID, int uart_fd) {
+    uint16_t bufferSize = 5 + payload.size();
+            //rounding buffersize to nearest 32 multiple
+    if((bufferSize%32) != 0){
+        bufferSize += (32 - bufferSize%32);
+    }
+    char buffer[bufferSize];
+    for(int i = 0; i < bufferSize; i ++){ buffer[i] = '0';}
+
     // Calculate the number of characters in the payload
     uint16_t payloadSize = static_cast<uint16_t>(payload.size());
     
     // Calculate the 2's complement of the payload
-    int sum = 0;
+    int32_t sum = 0;
     for(char c : payload) {
         sum += static_cast<uint8_t>(c);
     }
-    uint8_t twosComplement = static_cast<uint8_t>(~sum + 1);
+    uint8_t twosComplement = static_cast<uint8_t>(~sum);
 
     // Fill the buffer
     buffer[0] = '!';
@@ -247,9 +270,12 @@ void Payload_Prepare(const std::string& payload, char messageID, char* buffer) {
     buffer[2] = static_cast<char>((payloadSize >> 8) & 0xFF); // High 8 bits of payloadSize
     buffer[3] = static_cast<char>(twosComplement);
     buffer[4] = messageID;
-    
+
     // Copy the payload into the buffer starting from index 5
     memcpy(buffer + 5, payload.data(), payload.size());
+
+    // Add padding to reach a total of 32 bytes
+    int num_wrBytes = write(uart_fd, buffer, strlen(buffer));
 }
 
 /*

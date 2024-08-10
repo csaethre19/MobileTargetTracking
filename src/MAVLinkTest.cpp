@@ -3,6 +3,7 @@
 #include "Logger.h"
 
 int main() {
+    /*/
     // Create logger
     Logger appLogger("app_logger", "debug.log");
     auto logger = appLogger.getLogger();
@@ -34,8 +35,22 @@ int main() {
     auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(gps_msg);
     // int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
 
+    */
+    /*
+    //lat = 122.0001110
+    //lon = 139.3736065
+    //yaw = 293.59 deg
 
-    
+    // int32_t number1 = 1234588639;
+    // int32_t number2 = -678959504;
+    // uint16_t number3 = 30412;
+    // std::string ascii1 = std::to_string(number1);
+    // std::string ascii2 = std::to_string(number2);
+    // std::string ascii3 = std::to_string(number3);
+    char test_gps_data[] = "ascii1 + ascii2 + ascii3";
+    auto [lat, lon, yaw] = parse_custom_gps_data(test_gps_data);
+    cout << "lat: " << lat << " lon: " << lon << " yaw: " << yaw << endl;
+    */
 
 
 }
