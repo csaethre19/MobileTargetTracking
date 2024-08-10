@@ -34,7 +34,6 @@ std::tuple<double, double> target_gps(double relative_target_yaw_deg, double tar
 */
 void calculate_distance(int xc, int yc, double &pixDistance, double &distance, double &angleInDegrees);
 
-void Payload_Prepare(const std::string& payload, char specialChar, char* buffer);
 
 #endif
 
