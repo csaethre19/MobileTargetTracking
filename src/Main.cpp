@@ -103,20 +103,18 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         auto [target_lat, target_lon] = target_gps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
         
         // TO BE REMOVED: updating lat/lon to target lat/lon that was calculated
-        pos.lat = target_lat;
-        pos.lon = target_lon;
+        //pos.lat = target_lat;
+        //pos.lon = target_lon;
         ////////////////////////////////////////////////////////////////////////
 
         // Format string with target lat/lon
-        string target_lat_str = std::to_string(target_lat);
-        string target_lon_str = std::to_string(target_lon);
-        payload = target_lat_str + " " + target_lon_str;
+        std::string message_payload = packInt32ToString(target_lat, target_lon);
         msg_id = 'a';
         bufferSize = 5 + payload.size();
         char target_msg[bufferSize];
 
         // TODO: Add header to payload
-
+        
         // Send payload to swarm-dongle
         num_wrBytes = write(uart_fd, target_msg, strlen(target_msg));
         vidTx.transmitFrame(frame);
