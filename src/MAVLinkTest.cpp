@@ -1,56 +1,65 @@
+#include <thread>
 #include "MAVLinkUtils.h"
-#include "UART.h"
 #include "Logger.h"
+#include "UART.h"
+#include <string>
+
+using namespace std;
+
+// void sendThread(int uart_fd) {
+//     cout << "Inside sendThread\n";
+//     // Send Hello World over uart with header
+//     string message_payload = "Hello World"; 
+//     char msg_id = 'b';
+//     payloadPrepare(message_payload, msg_id, uart_fd);
+//     cout << "Exiting sendThread\n";
+// }
+
+// void listeningThread(int uart_fd) {
+//     cout << "Inside listeningThread\n";
+//     char ch;
+//     while (true) {
+//         cout << "Listening for characters...\n";
+//         if (read(uart_fd, &ch, 1) > 0) {
+//             cout << "Received character: " << ch << endl; // Debug: print every received character
+//             if (ch == '!') {
+//                 cout << "got start char\n";
+//                 char header[4];
+//                 if (read(uart_fd, &header, 4) > 0) {
+//                     cout << "read header portion\n";
+//                     uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
+//                         (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
+//                     cout << "parsed payload size: " << payloadSize << endl;
+//                 }
+//             }
+//         }
+//     }
+//     cout << "Exiting listeningThread\n";
+// }
+
 
 int main() {
-    /*/
-    // Create logger
     Logger appLogger("app_logger", "debug.log");
     auto logger = appLogger.getLogger();
 
-    // Open uart
     UART uart(logger, "/dev/ttyS0");
     int uart_fd = uart.openUART();
 
-    // Calculate center of bbox using hard-coded points
-    Point p1(100, 100);
-    Point p2(1000, 1000);
-    int xc = (p1.x + p2.x) / 2;
-    int yc = (p1.y + p2.y) / 2;
+    // std::thread listenerThread(listeningThread, uart_fd);
+    // listenerThread.detach(); // Let the listener thread run independently
+
+    // std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Give listener thread some time to start
+
+    // std::thread helloWorldThread(sendThread, uart_fd);
+    // helloWorldThread.join(); // Wait for the send thread to finish
+
+    // Send Hello World over uart with header
+    string message_payload = "Hello World"; 
+    char msg_id = 'b';
+    payloadPrepare(message_payload, msg_id, uart_fd);
     
-    // Calculate distance and update lat/lon with starting hard-coded lat/lon values
-    double test_target_yaw = 290.0;
-    // double distance = calculate_distance(xc, yc);
-    double test_target_dist = 500;
+    close(uart_fd); // Close UART port
 
-    //Aircraft Values
-    double test_aircraft_yaw = 150.0;
-    double test_aircraft_lat = (40.7553044); // Latitude in degrees * 1E7
-    double test_aircraft_lon = (-111.9304837); // Longitude in degrees * 1E7
-
-    auto [updated_lat, updated_lon]  = target_gps(test_target_yaw, test_target_dist, test_aircraft_yaw, test_aircraft_lat, test_aircraft_lon);
-
-    // Create gps MAVLink message and send over UART
-    std::vector<uint8_t> gps_msg = create_gps_msg(updated_lat, updated_lon);
-    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(gps_msg);
-    // int num_wrBytes = write(uart_fd, gps_msg.data(), gps_msg.size());
-
-    */
-    /*
-    //lat = 122.0001110
-    //lon = 139.3736065
-    //yaw = 293.59 deg
-
-    // int32_t number1 = 1234588639;
-    // int32_t number2 = -678959504;
-    // uint16_t number3 = 30412;
-    // std::string ascii1 = std::to_string(number1);
-    // std::string ascii2 = std::to_string(number2);
-    // std::string ascii3 = std::to_string(number3);
-    char test_gps_data[] = "ascii1 + ascii2 + ascii3";
-    auto [lat, lon, yaw] = parse_custom_gps_data(test_gps_data);
-    cout << "lat: " << lat << " lon: " << lon << " yaw: " << yaw << endl;
-    */
-
-
+    return 0;
 }
+

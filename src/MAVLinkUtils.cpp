@@ -257,8 +257,12 @@ void payloadPrepare(const std::string& payload, char messageID, int uart_fd) {
     // Copy the payload into the buffer starting from index 5
     memcpy(buffer + 5, payload.data(), payload.size());
 
+    // uint16_t verifyPayloadSize = static_cast<uint16_t>(static_cast<unsigned char>(buffer[1])) |
+    //     (static_cast<uint16_t>(static_cast<unsigned char>(buffer[2])) << 8);
+    // cout << "parsed payload size: " << verifyPayloadSize << endl;
+
     // send message over uart
-    int num_wrBytes = write(uart_fd, buffer, strlen(buffer));
+    int num_wrBytes = write(uart_fd, buffer, bufferSize);
 }
 
 /*

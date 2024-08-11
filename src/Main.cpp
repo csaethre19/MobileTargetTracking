@@ -138,60 +138,56 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
 void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) 
 {
     char ch;
-    char buffer[256];
-    int cmdBufferPos = 0;
-
     while (true) {
-        if (read(uart_fd, &ch, 1) > 0) {
-            if (ch == '\n') {
-                logger->debug("Listening Thread: received new command.");
-                std::lock_guard<std::mutex> lock(mtx);
-                buffer[cmdBufferPos] = '\0';
-                // Look past header to get payload
-                char* payload = &buffer[5];
-                logger->debug("Listening Thread: contents of payloadfer={}", payload);
+        if ((read(uart_fd, &ch, 1) > 0) && ch == '!') {
+            char header[4];
+            if (read(uart_fd, &header, 4) > 0) {
+                cout << "header: " << header << endl;
+                // parse payload size
+                uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
+                    (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
+                cout << "parsed payload size: " << payloadSize << endl;
 
-                // User initiated start of tracking 
-                if (strncmp(payload, "R track-start", 13) == 0) {
-                    // Extract coordinates of user selected region 
-                    // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                    string extractedString = &payload[14];
-                    int x1, y1, x2, y2;
-                    std::istringstream stream(extractedString);
-                    if (stream >> x1 >> y1 >> x2 >> y2) {
-                        cout << "x1: " << x1 << " y1: " << y1 << endl;
-                        cout << "x2: " << x2 << " y2: " << y2 << endl;
+                // TODO: verify checksum
 
-                        Point p1(x1, y1); 
-                        Point p2(x2, y2); 
+                char payload[payloadSize];
+                if (read(uart_fd, &payload, payloadSize) > 0) {
+                    cout << "payload: " << payload << endl;
+                    // User initiated start of tracking 
+                    if (strncmp(payload, "R track-start", 13) == 0) {
+                        // Extract coordinates of user selected region 
+                        // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
+                        string extractedString = &payload[14];
+                        int x1, y1, x2, y2;
+                        std::istringstream stream(extractedString);
+                        if (stream >> x1 >> y1 >> x2 >> y2) {
+                            cout << "x1: " << x1 << " y1: " << y1 << endl;
+                            cout << "x2: " << x2 << " y2: " << y2 << endl;
 
-                        continueTracking = true; // Set tracking flag
-                        std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
-                        trackThread.detach(); // Allow the thread to operate independently
+                            Point p1(x1, y1); 
+                            Point p2(x2, y2); 
+
+                            continueTracking = true; // Set tracking flag
+                            std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
+                            trackThread.detach(); // Allow the thread to operate independently
+                        }
+                        else {
+                            logger->error("Listening Thread: Unable to parse integers from track-start command.");
+                            continue;
+                        }
                     }
+                    // User initiated tracking end
+                    else if (strncmp(payload, "R track-end", 11) == 0) {
+                        logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
+                        continueTracking = false; // Clear tracking flag to stop the thread
+                    }
+                    // GPS Msg from swarm-dongle
                     else {
-                        logger->error("Listening Thread: Unable to parse integers from track-start command.");
-                        cmdBufferPos = 0;
-                        memset(buffer, 0, sizeof(buffer));
-                        continue;
+                        //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
+                        auto [lat, lon, yaw] = parseCustomGpsData(payload);
+                        // TODO: bring back code that updated shared variable pos struct to store these values
                     }
                 }
-                // User initiated tracking end
-                else if (strncmp(payload, "R track-end", 11) == 0) {
-                    logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
-                    continueTracking = false; // Clear tracking flag to stop the thread
-                }
-                // GPS Msg from swarm-dongle
-                else {
-                    //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
-                    auto [lat, lon, yaw] = parseCustomGpsData(payload);
-                }
-                // Reset buffer
-                cmdBufferPos = 0;
-                memset(buffer, 0, sizeof(buffer));
-            }
-            else {
-                buffer[cmdBufferPos++] = ch; // Store command characters
             }
         }
     }
