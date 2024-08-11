@@ -226,19 +226,9 @@ void calculate_distance(int xc, int yc, double &pixDistance, double &distance, d
     // cout << "Angle: " << angleInDegrees << " degrees" << endl;
 }
 
-float calculate_updated_lat(float curr_lat, float distance) {
-    // TODO
-    return curr_lat;
-}
-
-float calculate_updated_lon(float curr_lon, float distance) {
-    // TODO
-    return curr_lon;
-
-}
-
 
 /*
+
 Prepares the payload for sending, by filling a buffer with the required header
 A pre-assigned region of memory of size (payload_bytes + 5) must be reserved. The first byte of this buffer is passed to char* buffer.
 The payload is a series of arbitrary bytes, total bytes in payload must be less than 62.
@@ -247,34 +237,35 @@ messageID should match the purpose of the message, as defined by external docume
 */
 void Payload_Prepare(const std::string& payload, char messageID, int uart_fd) {
     uint16_t bufferSize = 5 + payload.size();
-            //rounding buffersize to nearest 32 multiple
+    //rounding buffersize to nearest 32 multiple
     if((bufferSize%32) != 0){
         bufferSize += (32 - bufferSize%32);
     }
     char buffer[bufferSize];
+    // Padding
     for(int i = 0; i < bufferSize; i ++){ buffer[i] = '0';}
 
     // Calculate the number of characters in the payload
     uint16_t payloadSize = static_cast<uint16_t>(payload.size());
     
-    // Calculate the 2's complement of the payload
+    // Calculate the 1's complement of the payload
     int32_t sum = 0;
     for(char c : payload) {
         sum += static_cast<uint8_t>(c);
     }
-    uint8_t twosComplement = static_cast<uint8_t>(~sum);
+    uint8_t onesComplement = static_cast<uint8_t>(~sum);
 
     // Fill the buffer
     buffer[0] = '!';
     buffer[1] = static_cast<char>(payloadSize & 0xFF); // Lower 8 bits of payloadSize
     buffer[2] = static_cast<char>((payloadSize >> 8) & 0xFF); // High 8 bits of payloadSize
-    buffer[3] = static_cast<char>(twosComplement);
+    buffer[3] = static_cast<char>(onesComplement);
     buffer[4] = messageID;
 
     // Copy the payload into the buffer starting from index 5
     memcpy(buffer + 5, payload.data(), payload.size());
 
-    // Add padding to reach a total of 32 bytes
+    // send message over uart
     int num_wrBytes = write(uart_fd, buffer, strlen(buffer));
 }
 
