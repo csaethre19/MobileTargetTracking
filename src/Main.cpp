@@ -140,54 +140,69 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
     char ch;
     while (true) {
         if ((read(uart_fd, &ch, 1) > 0) && ch == '!') {
-            char header[4];
-            if (read(uart_fd, &header, 4) > 0) {
-                cout << "header: " << header << endl;
-                // parse payload size
-                uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
-                    (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
-                cout << "parsed payload size: " << payloadSize << endl;
-
-                // TODO: verify checksum
-
-                char payload[payloadSize];
-                if (read(uart_fd, &payload, payloadSize) > 0) {
-                    cout << "payload: " << payload << endl;
-                    // User initiated start of tracking 
-                    if (strncmp(payload, "R track-start", 13) == 0) {
-                        // Extract coordinates of user selected region 
-                        // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                        string extractedString = &payload[14];
-                        int x1, y1, x2, y2;
-                        std::istringstream stream(extractedString);
-                        if (stream >> x1 >> y1 >> x2 >> y2) {
-                            cout << "x1: " << x1 << " y1: " << y1 << endl;
-                            cout << "x2: " << x2 << " y2: " << y2 << endl;
-
-                            Point p1(x1, y1); 
-                            Point p2(x2, y2); 
-
-                            continueTracking = true; // Set tracking flag
-                            std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
-                            trackThread.detach(); // Allow the thread to operate independently
-                        }
-                        else {
-                            logger->error("Listening Thread: Unable to parse integers from track-start command.");
-                            continue;
-                        }
-                    }
-                    // User initiated tracking end
-                    else if (strncmp(payload, "R track-end", 11) == 0) {
-                        logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
-                        continueTracking = false; // Clear tracking flag to stop the thread
-                    }
-                    // GPS Msg from swarm-dongle
-                    else {
-                        //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
-                        auto [lat, lon, yaw] = parseCustomGpsData(payload);
-                        // TODO: bring back code that updated shared variable pos struct to store these values
-                    }
+            int HEADER_SIZE = 4;
+            int bytesRead = 0;
+            int totalBytesRead = 0;
+            char header[HEADER_SIZE];
+            while (totalBytesRead < HEADER_SIZE) {
+                bytesRead = read(uart_fd, &header[totalBytesRead], HEADER_SIZE - totalBytesRead);
+                if (bytesRead > 0) {
+                    totalBytesRead += bytesRead;
                 }
+            }
+            cout << "header: " << header << endl;
+            // parse payload size
+            uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
+                    (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
+            cout << "parsed payload size: " << payloadSize << endl;
+
+            // TODO: verify checksum 
+
+            char payload[payloadSize];
+            bytesRead = 0;
+            totalBytesRead = 0;
+            while (totalBytesRead < payloadSize) {
+                bytesRead = read(uart_fd, &payload[totalBytesRead], payloadSize - totalBytesRead);
+                if (bytesRead > 0) {
+                    totalBytesRead += bytesRead;
+                }
+            }
+            cout << "total bytes read for payload: " << totalBytesRead << endl;
+            cout << "payload: " << payload << endl;
+                    
+            // User initiated start of tracking 
+            if (strncmp(payload, "R track-start", 13) == 0) {
+                // Extract coordinates of user selected region 
+                // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
+                string extractedString = &payload[14];
+                int x1, y1, x2, y2;
+                std::istringstream stream(extractedString);
+                if (stream >> x1 >> y1 >> x2 >> y2) {
+                    cout << "x1: " << x1 << " y1: " << y1 << endl;
+                    cout << "x2: " << x2 << " y2: " << y2 << endl;
+
+                    Point p1(x1, y1); 
+                    Point p2(x2, y2); 
+
+                    continueTracking = true; // Set tracking flag
+                    std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
+                    trackThread.detach(); // Allow the thread to operate independently
+                }
+                else {
+                    logger->error("Listening Thread: Unable to parse integers from track-start command.");
+                    continue;
+                }
+            }
+            // User initiated tracking end
+            else if (strncmp(payload, "R track-end", 11) == 0) {
+                logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
+                continueTracking = false; // Clear tracking flag to stop the thread
+            }
+            // GPS Msg from swarm-dongle
+            else {
+                //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
+                auto [lat, lon, yaw] = parseCustomGpsData(payload);
+                // TODO: bring back code that updated shared variable pos struct to store these values
             }
         }
     }
