@@ -34,44 +34,52 @@ struct Position {
     double lon;
     double yaw;
     double alt;
+    uint8_t sys_id;
+    uint8_t comp_id;
+
 };
 
 Position pos;
 std::mutex pos_mtx;
 
-uint8_t SYS_ID = 0;
-uint8_t COMP_ID = 0;
+Logger appLogger("app_logger", "debug.log");
+auto logger = appLogger.getLogger();
+
 
 
 void transmitterThread(VideoTransmitter &vidTx, VideoCapture &video) 
 {
-    cout << "Starting to transmit video" << endl;
+    logger->debug("Transmitter Thread: Beginning to transmit video frames.");
     Mat frame;
-    cout << "transmit tracking frame flag: " << transmitTrackingFrame << endl;
     int frameRead;
     while ((frameRead = video.read(frame)) && !transmitTrackingFrame) {
         vidTx.transmitFrame(frame);
     }
-    cout << "frameRead: " << frameRead << endl;
-    cout << "Exiting transmitterThread" << endl;
+    logger->debug("Exiting Transmitter Thread.");
 }
 
 void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point p1, Point p2, VideoTransmitter &vidTx, VideoCapture &video) 
 {
-    // TODO: send mavlink msg to set flight mode using SYS_ID and COMP_ID 
+    // Set flight mode to guided mode
+    string message_payload = ""; // EMPTY PAYLOAD
+    char msg_id = 'b';
+    payloadPrepare(message_payload, msg_id, uart_fd);
+
+    // Initialize tracking
     Tracking tracker("MOSSE", video, logger);
-    cout << "Begin of transmitting tracking frames..." << endl;
     transmitTrackingFrame = true;
     int width = p2.x - p1.x;
     int height = p2.y - p1.y;
     Rect bbox(p1.x, p1.y, width, height);
     Mat frame = tracker.initTracker(bbox);
     if (frame.empty()) {
-        cout << "tracker initialization failed.\n";
+        logger->error("Tracking Thread: Tracker initialization failed.");
         return;
     }
 
-    cout << "Begin Tracking" << endl;
+    uint16_t onehz_update_counter = 0;
+
+    logger->debug("Tracking Thread: Entering tracking process...");
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
         // Calculate top-left and bottom-right corners of bbox
@@ -81,112 +89,132 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         // Calculate center of bbox
         int xc = (p1.x + p2.x) / 2;
         int yc = (p1.y + p2.y) / 2;
-        
-        // TODO: calculate updated GPS coordinate
 
-        char loc[32];
-        snprintf(loc, sizeof(loc), "F update-loc %d %d", xc, yc);
-        // Send updated coordinates to swarm-dongle
-        // int num_wrBytes = write(uart_fd, loc, strlen(loc)); // another thing to consider, not flooding the swarm-dongle
-                                                            // only send updated coordinate information when it is beyond some threshold...
+        double pixDistance = 0.0;
+        double distance = 0.0;
+        double angleInDegrees = 0.0;
+        // Calculate distance based on center point of updated bbox
+        calculateDistance(xc, yc, pixDistance, distance, angleInDegrees);
         
-        cout << "Transmitting tracking frame now..." << endl;
+        // Calculate target gps coordinates based on distance calculated
+
+        //------------------ ~~~1 hz update to aircraft position, request updated position of airacraft at the same time------------------//
+        onehz_update_counter++;
+        if(onehz_update_counter > 20){
+            //prepare a payload into a string data type
+            std::lock_guard<std::mutex> lock(pos_mtx);
+            auto [target_lat, target_lon] = calculateTargetGps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
+            string message_payload = packDoubleToString(target_lat, target_lon);
+            msg_id = 'a';
+            payloadPrepare(message_payload, msg_id, uart_fd);
+
+            onehz_update_counter = 0;
+            
+            message_payload = "";
+            msg_id = 'd';
+            payloadPrepare(message_payload, msg_id, uart_fd);
+        }
         vidTx.transmitFrame(frame);
-        
-        // TODO: sample GPS coordinate from swarm-dongle and update global shared variable
     }
 
-    cout << "Tracking ended.\n";
-    // need to start up transmitter thread and send track-end to app
+    // Set flight mode to loiter mode
+    message_payload = ""; // EMPTY PAYLOAD
+    msg_id = 'c';
+    payloadPrepare(message_payload, msg_id, uart_fd);
+
+    logger->debug("Tracking Thread: Tracking Ended.");
+    // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
-    char msg[32];
-    snprintf(msg, sizeof(msg), "D track-fail\n");
-    int num_wrBytes = write(uart_fd, msg, strlen(msg));
+
+    // Send desktop app track fail message
+    msg_id = 'g';
+    string trackfailstring = "D track-fail\n";
+    payloadPrepare(trackfailstring, msg_id, uart_fd);
+
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
 }
 
-void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) {
+void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) 
+{
     char ch;
-    char buffer[256];
-    int cmdBufferPos = 0;
-
     while (true) {
-        if (read(uart_fd, &ch, 1) > 0) {
-            if (ch == '\n') {
-                cout << "Received new command...\n";
-                std::lock_guard<std::mutex> lock(mtx);
-                buffer[cmdBufferPos] = '\0';
-                cout << "BUFFER: " << buffer << endl;
-                // From grond-station (user app)
-                if (strncmp(buffer, "R track-start", 13) == 0) {
-                    // Extract coordinates of user selected region 
-                    // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
-                    string extractedString = &buffer[14];
-                    int x1, y1, x2, y2;
-                    std::istringstream stream(extractedString);
-                    if (stream >> x1 >> y1 >> x2 >> y2) {
-                        cout << "x1: " << x1 << " y1: " << y1 << endl;
-                        cout << "x2: " << x2 << " y2: " << y2 << endl;
-
-                        Point p1(x1, y1); 
-                        Point p2(x2, y2); 
-
-                        cout << "Initiating tracking...\n";
-
-                        continueTracking = true; // Set tracking flag
-                        std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
-                        trackThread.detach(); // Allow the thread to operate independently
-                    }
-                    else {
-                        cout << "Unable to parse integers from track-start command\n";
-                        cmdBufferPos = 0;
-                        memset(buffer, 0, sizeof(buffer));
-                        continue;
-                    }
-                }
-                else if (strncmp(buffer, "R track-end", 11) == 0) {
-                    cout << "Tracking stopping...\n";
-                    continueTracking = false; // Clear tracking flag to stop the thread
-                }
-                // From swarm-dongle
-                else if (strncmp(buffer, "R ", 2) == 0) {
-                    // Extract the MAVLink message part from the buffer
-                    std::vector<uint8_t> buf(buffer + 2, buffer + 2 + sizeof(buffer));
-
-                    auto [lat, lon, yaw, alt, sysid, compid] = parse_gps_msg(buf);
-
-                    std::cout << "Latitude: " << lat << std::endl;
-                    std::cout << "Longitude: " << lon << std::endl;
-                    std::cout << "Heading (Yaw): " << yaw << std::endl;
-                    std::cout << "Altituide: " << alt << std::endl;
-
-                    // Add new values to shared variable
-                    std::lock_guard<std::mutex> lock(pos_mtx);
-                    pos.lat = lat;
-                    pos.lon = lon;
-                    pos.yaw = yaw;
-                    pos.alt = alt;
-                    SYS_ID = sysid;
-                    COMP_ID = compid;
-
-                    // confirming struct pos updated accordingly
-                    cout << "pos.lat: " << pos.lat << endl << "pos.lon: " << pos.lon << endl << "pos.yaw: " << pos.yaw << endl << "pos.alt: " << pos.alt << endl;;
-
-                    cmdBufferPos = 0; // Reset the buffer position
-                    memset(buffer, 0, sizeof(buffer)); // Clear buffer after handling
+        if ((read(uart_fd, &ch, 1) > 0) && ch == '!') {
+            int HEADER_SIZE = 4;
+            int bytesRead = 0;
+            int totalBytesRead = 0;
+            char header[HEADER_SIZE];
+            while (totalBytesRead < HEADER_SIZE) {
+                bytesRead = read(uart_fd, &header[totalBytesRead], HEADER_SIZE - totalBytesRead);
+                if (bytesRead > 0) {
+                    totalBytesRead += bytesRead;
                 }
             }
+            cout << "header: " << header << endl;
+            // parse payload size
+            uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
+                    (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
+            cout << "parsed payload size: " << payloadSize << endl;
+
+            // TODO: verify checksum 
+
+            char payload[payloadSize];
+            bytesRead = 0;
+            totalBytesRead = 0;
+            while (totalBytesRead < payloadSize) {
+                bytesRead = read(uart_fd, &payload[totalBytesRead], payloadSize - totalBytesRead);
+                if (bytesRead > 0) {
+                    totalBytesRead += bytesRead;
+                }
+            }
+            cout << "total bytes read for payload: " << totalBytesRead << endl;
+            cout << "payload: " << payload << endl;
+                    
+            // User initiated start of tracking 
+            if (strncmp(payload, "R track-start", 13) == 0) {
+                // Extract coordinates of user selected region 
+                // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
+                string extractedString = &payload[14];
+                int x1, y1, x2, y2;
+                std::istringstream stream(extractedString);
+                if (stream >> x1 >> y1 >> x2 >> y2) {
+                    cout << "x1: " << x1 << " y1: " << y1 << endl;
+                    cout << "x2: " << x2 << " y2: " << y2 << endl;
+
+                    Point p1(x1, y1); 
+                    Point p2(x2, y2); 
+
+                    continueTracking = true; // Set tracking flag
+                    std::thread trackThread(trackingThread, std::ref(logger), uart_fd, p1, p2, std::ref(vidTx), std::ref(video));
+                    trackThread.detach(); // Allow the thread to operate independently
+                }
+                else {
+                    logger->error("Listening Thread: Unable to parse integers from track-start command.");
+                    continue;
+                }
+            }
+            // User initiated tracking end
+            else if (strncmp(payload, "R track-end", 11) == 0) {
+                logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
+                continueTracking = false; // Clear tracking flag to stop the thread
+            }
+            // GPS Msg from swarm-dongle
             else {
-                buffer[cmdBufferPos++] = ch; // Store command characters
+                //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
+                auto [lat, lon, yaw] = parseCustomGpsData(payload);
+                // TODO: bring back code that updated shared variable pos struct to store these values
             }
         }
     }
 }
 
 int main(int argc, char* argv[]) {
-    Logger appLogger("app_logger", "debug.log");
-    auto logger = appLogger.getLogger();
+
+    // TO BE REMOVED: setting lat lon to hard-coded coordinates
+    pos.lat = 40.7553044;
+    pos.lon = -111.9304837;
+    pos.yaw = 0.0; // not sure what this should be?
+    ///////////////////////////////////////////////////////////
 
     Camera cam(logger);
     string videoPath = "";
