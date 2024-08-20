@@ -1,131 +1,131 @@
 #include "MAVLinkUtils.h"
 #include "UART.h"
 
-// NOT IN USE: uses MAVLink
-std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const std::vector<uint8_t>& buf) {
-    mavlink_message_t msg;
-    mavlink_status_t status;
+// // NOT IN USE: uses MAVLink
+// std::tuple<double, double, double, double, uint8_t, uint8_t> parse_gps_msg(const std::vector<uint8_t>& buf) {
+//     mavlink_message_t msg;
+//     mavlink_status_t status;
 
-    double lat = 0.0;
-    double lon = 0.0;
-    double yaw = 0.0;
-    double alt = 0.0;
-    uint8_t sysid = 0;
-    uint8_t compid = 0;
+//     double lat = 0.0;
+//     double lon = 0.0;
+//     double yaw = 0.0;
+//     double alt = 0.0;
+//     uint8_t sysid = 0;
+//     uint8_t compid = 0;
 
-    // Parse the MAVLink message from the buffer
-    for (size_t i = 0; i < buf.size(); ++i) {
-        if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
-            std::cout << "Parsed mavlink char\n";
-            // Message successfully parsed
-            if (msg.msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
-                std::cout << "msg id was correct\n";
-                // Create a structure to hold the decoded message
-                mavlink_global_position_int_t global_position_int;
-                mavlink_msg_global_position_int_decode(&msg, &global_position_int);
+//     // Parse the MAVLink message from the buffer
+//     for (size_t i = 0; i < buf.size(); ++i) {
+//         if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
+//             std::cout << "Parsed mavlink char\n";
+//             // Message successfully parsed
+//             if (msg.msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
+//                 std::cout << "msg id was correct\n";
+//                 // Create a structure to hold the decoded message
+//                 mavlink_global_position_int_t global_position_int;
+//                 mavlink_msg_global_position_int_decode(&msg, &global_position_int);
 
-                // Extract latitude, longitude, altitude, and heading (yaw)
-                lat = global_position_int.lat / 1E7;
-                lon = global_position_int.lon / 1E7;
-                alt = global_position_int.relative_alt / 1E3; // Altitude is in millimeters
-                yaw = global_position_int.hdg / 100.0; // Heading is in centidegrees
+//                 // Extract latitude, longitude, altitude, and heading (yaw)
+//                 lat = global_position_int.lat / 1E7;
+//                 lon = global_position_int.lon / 1E7;
+//                 alt = global_position_int.relative_alt / 1E3; // Altitude is in millimeters
+//                 yaw = global_position_int.hdg / 100.0; // Heading is in centidegrees
 
-                // Extract system and component IDs
-                sysid = msg.sysid;
-                compid = msg.compid;
-            }
-        }
-    }
+//                 // Extract system and component IDs
+//                 sysid = msg.sysid;
+//                 compid = msg.compid;
+//             }
+//         }
+//     }
 
-    // std::cout << "lat: " << lat << std::endl;
-    // std::cout << "lon: " << lon << std::endl;
-    // std::cout << "yaw: " << yaw << std::endl;
-    // std::cout << "alt: " << alt << std::endl;
-    // std::cout << "sysid: " << static_cast<int>(sysid) << std::endl;
-    // std::cout << "compid: " << static_cast<int>(compid) << std::endl;
+//     // std::cout << "lat: " << lat << std::endl;
+//     // std::cout << "lon: " << lon << std::endl;
+//     // std::cout << "yaw: " << yaw << std::endl;
+//     // std::cout << "alt: " << alt << std::endl;
+//     // std::cout << "sysid: " << static_cast<int>(sysid) << std::endl;
+//     // std::cout << "compid: " << static_cast<int>(compid) << std::endl;
 
-    return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
-}
+//     return std::make_tuple(lat, lon, yaw, alt, sysid, compid);
+// }
 
-// NOT IN USE: uses MAVLink
-std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
-    // Create buffer for the message
-    std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
-    mavlink_message_t msg; // create mavlink_message_t structure to hold message contents
-    uint16_t len; // var to hold length of serialized message
+// // NOT IN USE: uses MAVLink
+// std::vector<uint8_t> create_gps_msg(float lat_input, float lon_input) {
+//     // Create buffer for the message
+//     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
+//     mavlink_message_t msg; // create mavlink_message_t structure to hold message contents
+//     uint16_t len; // var to hold length of serialized message
 
-    // Initialize the message
-    uint8_t system_id = 1; // sets system ID for message
-    uint8_t component_id = 200; // sets component ID for message - ID of the component sending the message (e.g., autopilot, gimbal, camera).
+//     // Initialize the message
+//     uint8_t system_id = 1; // sets system ID for message
+//     uint8_t component_id = 200; // sets component ID for message - ID of the component sending the message (e.g., autopilot, gimbal, camera).
 
-    // Define target position and other parameters
-    uint32_t time_boot_ms = 0; // Timestamp (milliseconds since system boot)
-    int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
-    int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
-    int32_t alt = 30000; // Altitude in millimeters (placeholder value)
-    int32_t relative_alt = 30000; // Altitude relative to the home position in millimeters
-    int16_t vx = 0; // X velocity in cm/s (placeholder value)
-    int16_t vy = 0; // Y velocity in cm/s (placeholder value)
-    int16_t vz = 0; // Z velocity in cm/s (placeholder value)
-    uint16_t hdg = UINT16_MAX; // Heading in centidegrees (placeholder value)
+//     // Define target position and other parameters
+//     uint32_t time_boot_ms = 0; // Timestamp (milliseconds since system boot)
+//     int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
+//     int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
+//     int32_t alt = 30000; // Altitude in millimeters (placeholder value)
+//     int32_t relative_alt = 30000; // Altitude relative to the home position in millimeters
+//     int16_t vx = 0; // X velocity in cm/s (placeholder value)
+//     int16_t vy = 0; // Y velocity in cm/s (placeholder value)
+//     int16_t vz = 0; // Z velocity in cm/s (placeholder value)
+//     uint16_t hdg = UINT16_MAX; // Heading in centidegrees (placeholder value)
 
-    // Pack the GLOBAL_POSITION_INT message
-    mavlink_msg_global_position_int_pack(system_id, component_id, &msg, time_boot_ms, lat, lon, alt, relative_alt, vx, vy, vz, hdg);
+//     // Pack the GLOBAL_POSITION_INT message
+//     mavlink_msg_global_position_int_pack(system_id, component_id, &msg, time_boot_ms, lat, lon, alt, relative_alt, vx, vy, vz, hdg);
 
-    // Copy the message to the send buffer
-    len = mavlink_msg_to_send_buffer(buf.data(), &msg);
+//     // Copy the message to the send buffer
+//     len = mavlink_msg_to_send_buffer(buf.data(), &msg);
 
-    // Resize the buffer to the actual length of the serialized message
-    buf.resize(len);
+//     // Resize the buffer to the actual length of the serialized message
+//     buf.resize(len);
 
-    return buf; // this gets passed over UART
-}
+//     return buf; // this gets passed over UART
+// }
 
-// NOT IN USE: uses MAVLink
-std::vector<uint8_t> create_target_gps_msg(float lat_input, float lon_input) {
-    // Create buffer for the message
-    std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
-    mavlink_message_t msg; // create mavlink_message_t structure to hold message contents
-    uint16_t len; // var to hold length of serialized message
+// // NOT IN USE: uses MAVLink
+// std::vector<uint8_t> create_target_gps_msg(float lat_input, float lon_input) {
+//     // Create buffer for the message
+//     std::vector<uint8_t> buf(MAVLINK_MAX_PACKET_LEN); // buffer for mavlink message using mavlink constant for max packet length
+//     mavlink_message_t msg; // create mavlink_message_t structure to hold message contents
+//     uint16_t len; // var to hold length of serialized message
 
-    // Initialize the message
-    uint8_t system_id = 1; // sets system ID for message
-    uint8_t component_id = 200; // sets component ID for message - ID of the component sending the message (e.g., autopilot, gimbal, camera).
+//     // Initialize the message
+//     uint8_t system_id = 1; // sets system ID for message
+//     uint8_t component_id = 200; // sets component ID for message - ID of the component sending the message (e.g., autopilot, gimbal, camera).
 
-    // Define target position and other parameters
-    uint32_t time_boot_ms = 0; // Timestamp (milliseconds since system boot)
-    uint8_t target_system = 1; // Target system ID
-    uint8_t target_component = 1; // Target component ID
-    uint8_t coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT; // Frame of reference
+//     // Define target position and other parameters
+//     uint32_t time_boot_ms = 0; // Timestamp (milliseconds since system boot)
+//     uint8_t target_system = 1; // Target system ID
+//     uint8_t target_component = 1; // Target component ID
+//     uint8_t coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT; // Frame of reference
 
-    int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
-    int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
-    float alt = 30.0f; // Altitude in meters (placeholder value)
-    uint16_t yaw = UINT16_MAX; // Yaw angle in degrees * 100 (placeholder value)
+//     int32_t lat = static_cast<int32_t>(lat_input * 1E7); // Latitude in degrees * 1E7
+//     int32_t lon = static_cast<int32_t>(lon_input * 1E7); // Longitude in degrees * 1E7
+//     float alt = 30.0f; // Altitude in meters (placeholder value)
+//     uint16_t yaw = UINT16_MAX; // Yaw angle in degrees * 100 (placeholder value)
 
-    // The following fields are required but will be set to zero or max value as placeholders
-    uint16_t type_mask = 0b0000111111000111; // Bitmask to indicate which dimensions should be ignored (use position only)
-    float vx = 0.0f; // X velocity in m/s (ignored)
-    float vy = 0.0f; // Y velocity in m/s (ignored)
-    float vz = 0.0f; // Z velocity in m/s (ignored)
-    float afx = 0.0f; // X acceleration/force (ignored)
-    float afy = 0.0f; // Y acceleration/force (ignored)
-    float afz = 0.0f; // Z acceleration/force (ignored)
-    float yaw_rate = 0.0f; // Yaw rate in rad/s (ignored)
+//     // The following fields are required but will be set to zero or max value as placeholders
+//     uint16_t type_mask = 0b0000111111000111; // Bitmask to indicate which dimensions should be ignored (use position only)
+//     float vx = 0.0f; // X velocity in m/s (ignored)
+//     float vy = 0.0f; // Y velocity in m/s (ignored)
+//     float vz = 0.0f; // Z velocity in m/s (ignored)
+//     float afx = 0.0f; // X acceleration/force (ignored)
+//     float afy = 0.0f; // Y acceleration/force (ignored)
+//     float afz = 0.0f; // Z acceleration/force (ignored)
+//     float yaw_rate = 0.0f; // Yaw rate in rad/s (ignored)
 
-    std::cout << "lat: " << lat << " lon: " << lon << std::endl;
+//     std::cout << "lat: " << lat << " lon: " << lon << std::endl;
 
-    // Pack the SET_POSITION_TARGET_GLOBAL_INT message
-    mavlink_msg_set_position_target_global_int_pack(system_id, component_id, &msg, time_boot_ms, target_system, target_component, coordinate_frame, type_mask, lat, lon, alt, vx, vy, vz, afx, afy, afz, yaw, yaw_rate);
+//     // Pack the SET_POSITION_TARGET_GLOBAL_INT message
+//     mavlink_msg_set_position_target_global_int_pack(system_id, component_id, &msg, time_boot_ms, target_system, target_component, coordinate_frame, type_mask, lat, lon, alt, vx, vy, vz, afx, afy, afz, yaw, yaw_rate);
 
-    // Copy the message to the send buffer
-    len = mavlink_msg_to_send_buffer(buf.data(), &msg);
+//     // Copy the message to the send buffer
+//     len = mavlink_msg_to_send_buffer(buf.data(), &msg);
 
-    // Resize the buffer to the actual length of the serialized message
-    buf.resize(len);
+//     // Resize the buffer to the actual length of the serialized message
+//     buf.resize(len);
 
-    return buf; // this gets passed over UART
-}
+//     return buf; // this gets passed over UART
+// }
 
 // TODO: need to get this working when we know how the custom gps message will be coming in as
 std::tuple<double, double, double> parseCustomGpsData(const char buf[]) {
@@ -257,9 +257,9 @@ void payloadPrepare(const std::string& payload, char messageID, int uart_fd) {
     // Copy the payload into the buffer starting from index 5
     memcpy(buffer + 5, payload.data(), payload.size());
 
-    // uint16_t verifyPayloadSize = static_cast<uint16_t>(static_cast<unsigned char>(buffer[1])) |
-    //     (static_cast<uint16_t>(static_cast<unsigned char>(buffer[2])) << 8);
-    // cout << "parsed payload size: " << verifyPayloadSize << endl;
+    uint16_t verifyPayloadSize = static_cast<uint16_t>(static_cast<unsigned char>(buffer[1])) |
+        (static_cast<uint16_t>(static_cast<unsigned char>(buffer[2])) << 8);
+    cout << "payloadPrepare: parsed payload size: " << verifyPayloadSize << endl;
 
     // send message over uart
     int num_wrBytes = write(uart_fd, buffer, bufferSize);

@@ -129,6 +129,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // Send desktop app track fail message
     msg_id = 'g';
     string trackfailstring = "D track-fail\n";
+    cout << "preparing to send TRACK-FAIL message\n";
     payloadPrepare(trackfailstring, msg_id, uart_fd);
 
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
@@ -202,7 +203,10 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             else {
                 //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
                 auto [lat, lon, yaw] = parseCustomGpsData(payload);
-                // TODO: bring back code that updated shared variable pos struct to store these values
+                // Add new values to shared variable representing position
+                std::lock_guard<std::mutex> lock(pos_mtx);
+                pos.lat = lat;
+                pos.lon = lon;
             }
         }
     }
