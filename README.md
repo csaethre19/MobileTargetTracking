@@ -19,7 +19,7 @@ This project works along side our TrackerApp project for the user desktop applic
 
 ### System Overview
 <img src="images/System.png" width="200" height="250" /> 
-<p>This system interfaces with the swarm-dongle hardware module. The system is made up of the following components:</p>
+<p>This system interfaces with two additional hardware modules called swarm-dongles that facilitate over the air communication and enable communication to flight controller of drone. The system is made up of the following components:</p>
 <ul>
 <li>Raspberry Pi 3B+ with Camera Module</li>
 <li>Video Transmitter</li>
