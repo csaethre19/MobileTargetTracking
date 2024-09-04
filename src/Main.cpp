@@ -157,8 +157,6 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
             cout << "parsed payload size: " << payloadSize << endl;
 
-            // TODO: verify checksum 
-
             char payload[payloadSize];
             bytesRead = 0;
             totalBytesRead = 0;
@@ -170,7 +168,19 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             }
             cout << "total bytes read for payload: " << totalBytesRead << endl;
             cout << "payload: " << payload << endl;
-                    
+
+            // Verify checksum:
+            uint8_t onesComplement = static_cast<uint8_t>(header[3]);
+            int sum = 0;
+            for (int i = 0; i < payloadSize; i++) {
+                sum += static_cast<uint8_t>payload[i];
+            }
+            uint8_t calculatedChecksum = static_cast<uint8_t>(0xFF - sum);
+            if (calculatedChecksum != onesComplement) {
+                logger->error("Bad CHECKSUM");
+                continue;
+            }
+
             // User initiated start of tracking 
             if (strncmp(payload, "R track-start", 13) == 0) {
                 // Extract coordinates of user selected region 
