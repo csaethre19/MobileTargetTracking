@@ -1,4 +1,7 @@
 # Mobile Tracking System
+
+## Overview
+
 <p>University of Utah Computer Engineering Senior Capstone by Kirra Kotsenburg, Nicholas Ronnie, and Charlotte Saethre. </p>
 <hr>
 <div style="display: flex; justify-content: space-between;">
@@ -14,6 +17,28 @@ For video transmission we are using [AKK X2M 5.8Ghz Switchable FPV Transmitter](
 
 This project works along side our TrackerApp project for the user desktop application which you can access [here](https://github.com/KirraKotsenburg/TrackerApp).
 
+For the entire system set up we will be using a custom Gimbal to hold the camera connected to the Raspberry pi. Project can be accessed [here](https://github.com/csaethre19/GimbalProject)
+
+### System Overview
+<img src="images/System.png" width="200" height="250" /> 
+<p>This system interfaces with two additional hardware modules called swarm-dongles that facilitate over the air communication and enable communication to flight controller of drone. The system is made up of the following components:</p>
+<ul>
+<li>Raspberry Pi 3B+ with Camera Module</li>
+<li>Video Transmitter</li>
+<li>Video Receiver</li>
+<li>Swarm-dongle module 1 (connected to Raspi)</li>
+<li>Swarm-dongle module 2 (connected to Desktop)</li>
+</ul>
+
+### Internal System Overview
+<img src="images/InternalSystem.png" width="250" height="200" />
+
+
+### Command Protocol
+
+<p>The following message format is used to communicate between the Raspi, Swarm-dongles, and Desktop app:</p>
+<img src="images/MessageFormat.png" width="500" height="100" />
+
 ## Usage
 
 To run in the current state:
@@ -21,8 +46,9 @@ To run in the current state:
 sudo systemctl stop serial-getty@ttyS0.service
 sudo systemctl disable serial-getty@ttyS0.service
 sudo chmod 666 /dev/ttyS0
+mkdir build
 cd build
-make
+make TestMain
 sudo ./TestMain
 ```
 
@@ -32,9 +58,9 @@ Note* tracker.sh is a bash script that will automate these commands and allow us
 ```shell
 ./tracker.sh
 ```
-This will execute the stop/disable getty commands for the ttyS0, cd into our project and run the application. 
+This will execute the stop/disable getty commands for the ttyS0, cd into build folder and run the application. 
 
-### Set Up
+## Dev Set Up
 1. Create SSH key on Raspberry Pi (Linux based system).
     In a terminal type the following command:
     ```shell
@@ -76,7 +102,7 @@ enable_tvout=1 <br>
 It is necessary to build OpenCV from source on the Raspberry Pi itself.
 Follow the instructions [here](https://qengineering.eu/install-opencv-on-raspberry-pi.html) to do this if you do not have OpenCV.
 
-### MAVLink
+### MAVLink (This library is not being used at this time)
 ```shell
 cd third_party
 git clone https://github.com/mavlink/c_library_v2.git
