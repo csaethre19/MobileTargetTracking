@@ -17,6 +17,8 @@ For video transmission we are using [AKK X2M 5.8Ghz Switchable FPV Transmitter](
 
 This project works along side our TrackerApp project for the user desktop application which you can access [here](https://github.com/KirraKotsenburg/TrackerApp).
 
+For the entire system set up we will be using a custom Gimbal to hold the camera connected to the Raspberry pi. Project can be accessed [here](https://github.com/csaethre19/GimbalProject)
+
 ### System Overview
 <img src="images/System.png" width="200" height="250" /> 
 <p>This system interfaces with two additional hardware modules called swarm-dongles that facilitate over the air communication and enable communication to flight controller of drone. The system is made up of the following components:</p>
