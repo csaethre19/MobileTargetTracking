@@ -81,35 +81,32 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
 
     logger->debug("Tracking Thread: Entering tracking process...");
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
-        // Continue tracking and sending updates...
-        // Calculate top-left and bottom-right corners of bbox
-        Point p1(cvRound(bbox.x), cvRound(bbox.y));
-        Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height));
-
-        // Calculate center of bbox
-        int xc = (p1.x + p2.x) / 2;
-        int yc = (p1.y + p2.y) / 2;
-
-        double pixDistance = 0.0;
-        double distance = 0.0;
-        double angleInDegrees = 0.0;
-        // Calculate distance based on center point of updated bbox
-        calculateDistance(xc, yc, pixDistance, distance, angleInDegrees);
-        
-        // Calculate target gps coordinates based on distance calculated
-
-        //------------------ ~~~1 hz update to aircraft position, request updated position of airacraft at the same time------------------//
+        // ~1 hz update to aircraft position, request updated position of airacraft at the same time
         onehz_update_counter++;
         if(onehz_update_counter > 20){
-            //prepare a payload into a string data type
+            // Calculate center of bbox
+            Point p1(cvRound(bbox.x), cvRound(bbox.y));
+            Point p2(cvRound(bbox.x + bbox.width), cvRound(bbox.y + bbox.height));
+            int xc = (p1.x + p2.x) / 2;
+            int yc = (p1.y + p2.y) / 2;
+
+            // Calculate distance based on center of bbox
+            double pixDistance = 0.0;
+            double distance = 0.0;
+            double angleInDegrees = 0.0;
+            calculateDistance(xc, yc, pixDistance, distance, angleInDegrees);
+
+            // Calculate target GPS and pack into string datatype for payload message
             std::lock_guard<std::mutex> lock(pos_mtx);
             auto [target_lat, target_lon] = calculateTargetGps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
+            // Update desired position of aircraft
             string message_payload = packDoubleToString(target_lat, target_lon);
             msg_id = 'a';
             payloadPrepare(message_payload, msg_id, uart_fd);
 
             onehz_update_counter = 0;
             
+            // Request aircraft position
             message_payload = "";
             msg_id = 'd';
             payloadPrepare(message_payload, msg_id, uart_fd);
@@ -126,14 +123,19 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
 
-    // Send desktop app track fail message
-    msg_id = 'g';
-    string trackfailstring = "D track-fail\n";
-    cout << "preparing to send TRACK-FAIL message\n";
-    payloadPrepare(trackfailstring, msg_id, uart_fd);
+    // Note: if continueTracking is true, user did not initiate track-end and the tracking 
+    // must have failed.
+    if (continueTracking) {
+        // Send desktop app track-fail message 
+        msg_id = 'g';
+        string trackfailstring = "D track-fail\n";
+        cout << "preparing to send TRACK-FAIL message\n";
+        payloadPrepare(trackfailstring, msg_id, uart_fd);
+    }
 
+    // Begin transmitting regular frames again
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
-    videoTxThread.detach(); // video thread runs independently
+    videoTxThread.detach();
 }
 
 void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger, VideoTransmitter &vidTx, VideoCapture &video) 
@@ -151,8 +153,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     totalBytesRead += bytesRead;
                 }
             }
-            cout << "header: " << header << endl;
-            // parse payload size
+            // Parse payload size
             uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
                     (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
             cout << "parsed payload size: " << payloadSize << endl;
@@ -209,14 +210,17 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
                 continueTracking = false; // Clear tracking flag to stop the thread
             }
-            // GPS Msg from swarm-dongle
+            // GPS Msg from swarm-dongle - triggered from aircraft request message sent in tracking thread
             else {
-                //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
+                logger->debug("Received new GPS data.");
+                // NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
                 auto [lat, lon, yaw] = parseCustomGpsData(payload);
                 // Add new values to shared variable representing position
                 std::lock_guard<std::mutex> lock(pos_mtx);
                 pos.lat = lat;
                 pos.lon = lon;
+                pos.yaw = yaw;
+                logger->info("Updated lat: {}, lon: {}, yaw: {}", pos.lat, pos.lon, pos.yaw);
             }
         }
     }
