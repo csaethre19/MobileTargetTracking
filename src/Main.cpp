@@ -105,6 +105,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
             std::lock_guard<std::mutex> lock(pos_mtx);
             auto [target_lat, target_lon] = calculateTargetGps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
             string message_payload = packDoubleToString(target_lat, target_lon);
+            cout << "payload_targetGps: " << message_payload << endl;
             msg_id = 'a';
             payloadPrepare(message_payload, msg_id, uart_fd);
 
@@ -203,6 +204,8 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
                 auto [lat, lon, yaw] = parseCustomGpsData(payload);
                 // TODO: bring back code that updated shared variable pos struct to store these values
+                pos.lat = lat;
+                pos.lon = lon;
             }
         }
     }
