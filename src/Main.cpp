@@ -104,8 +104,9 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
             //prepare a payload into a string data type
             std::lock_guard<std::mutex> lock(pos_mtx);
             auto [target_lat, target_lon] = calculateTargetGps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
+            logger->info("Tracking Thread: Calculated lat={}, lon={}", target_lat, target_lon);
             string message_payload = packDoubleToString(target_lat, target_lon);
-            cout << "payload_targetGps: " << message_payload << endl;
+            logger->debug("Tracking Thread: Payload_Target_GPS={}", message_payload);
             msg_id = 'a';
             payloadPrepare(message_payload, msg_id, uart_fd);
 
@@ -118,12 +119,13 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         vidTx.transmitFrame(frame);
     }
 
+    logger->debug("Tracking Thread: Tracking Ended. Setting flight mode to loiter.");
+
     // Set flight mode to loiter mode
     message_payload = ""; // EMPTY PAYLOAD
     msg_id = 'c';
     payloadPrepare(message_payload, msg_id, uart_fd);
 
-    logger->debug("Tracking Thread: Tracking Ended.");
     // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
 
@@ -151,11 +153,9 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     totalBytesRead += bytesRead;
                 }
             }
-            cout << "header: " << header << endl;
             // parse payload size
             uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
                     (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
-            cout << "parsed payload size: " << payloadSize << endl;
 
             // TODO: verify checksum 
 
@@ -168,8 +168,8 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     totalBytesRead += bytesRead;
                 }
             }
-            cout << "total bytes read for payload: " << totalBytesRead << endl;
-            cout << "payload: " << payload << endl;
+
+            logger->debug("Listening Thread: Payload received: {}", payload);
                     
             // User initiated start of tracking 
             if (strncmp(payload, "R track-start", 13) == 0) {
@@ -179,8 +179,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 int x1, y1, x2, y2;
                 std::istringstream stream(extractedString);
                 if (stream >> x1 >> y1 >> x2 >> y2) {
-                    cout << "x1: " << x1 << " y1: " << y1 << endl;
-                    cout << "x2: " << x2 << " y2: " << y2 << endl;
+                    logger->info("Listening Thread: Bbox coordinates: x1={}, y1={}, x2={}, y2={}", x1, y1, x2, y2);
 
                     Point p1(x1, y1); 
                     Point p2(x2, y2); 
@@ -201,11 +200,15 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             }
             // GPS Msg from swarm-dongle
             else {
-                //NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
+                logger->debug("Listening Thread: Received new GPS data.");
+                // NEW VERSION OF AIRCRAFT POSITION ONLY INCLUDES LAT, LONG, YAW
                 auto [lat, lon, yaw] = parseCustomGpsData(payload);
-                // TODO: bring back code that updated shared variable pos struct to store these values
+                // Add new values to shared variable representing position
+                std::lock_guard<std::mutex> lock(pos_mtx);
                 pos.lat = lat;
                 pos.lon = lon;
+                pos.yaw = yaw;
+                logger->info("Listening Thread: Updated lat={}, lon={}, yaw={}", pos.lat, pos.lon, pos.yaw);
             }
         }
     }
