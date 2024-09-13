@@ -169,7 +169,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                 }
             }
 
-            logger->debug("Listening Thread: Payload received: {}", payload);
+            logger->debug("Listening Thread: Payload received: {}", std::string(payload));
                     
             // User initiated start of tracking 
             if (strncmp(payload, "R track-start", 13) == 0) {
