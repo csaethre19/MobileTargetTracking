@@ -21,7 +21,9 @@ For the entire system set up we will be using a custom Gimbal to hold the camera
 
 ### System Overview
 <img src="images/System.png" width="200" height="250" /> 
-<p>This system interfaces with two additional hardware modules called swarm-dongles that facilitate over the air communication and enable communication to flight controller of drone. The system is made up of the following components:</p>
+
+This system interfaces with two additional hardware modules called swarm-dongles designed and developed by [REDMORE DYNAMICS](https://redmoredynamics.com/). These modules facilitate over the air communication and enable communication to the flight controller of the drone. You can learn more about these modules [here](https://s3.redmoredynamics.com/website/User-Documentation-v1.0.0.pdf). The system is made up of the following components:
+
 <ul>
 <li>Raspberry Pi 3B+ with Camera Module</li>
 <li>Video Transmitter</li>
