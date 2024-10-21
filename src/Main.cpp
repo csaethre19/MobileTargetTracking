@@ -156,8 +156,18 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             // parse payload size
             uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
                     (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
-
-            // TODO: verify checksum 
+            
+            // Verify checksum:
+            uint8_t onesComplement = static_cast<uint8_t>(header[3]);
+            int sum = 0;
+            for (int i = 0; i < payloadSize; i++) {
+                sum += static_cast<uint8_t>payload[i];
+            }
+            uint8_t calculatedChecksum = static_cast<uint8_t>(0xFF - sum);
+            if (calculatedChecksum != onesComplement) {
+                logger->error("Bad CHECKSUM");
+                continue;
+            }
 
             char payload[payloadSize];
             bytesRead = 0;
