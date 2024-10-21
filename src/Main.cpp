@@ -226,12 +226,6 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
 
 int main(int argc, char* argv[]) {
 
-    // TO BE REMOVED: setting lat lon to hard-coded coordinates
-    pos.lat = 40.7553044;
-    pos.lon = -111.9304837;
-    pos.yaw = 0.0; // not sure what this should be?
-    ///////////////////////////////////////////////////////////
-
     Camera cam(logger);
     string videoPath = "";
     if (argc > 1) videoPath = argv[1];
