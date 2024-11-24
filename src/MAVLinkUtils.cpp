@@ -19,7 +19,7 @@ std::tuple<double, double, double> parseCustomGpsData(const char buf[]) {
     double lon = temp_lon / 1E7;
     double yaw = temp_yaw / 100.0;
 
-    cout << "BEFORE lat: " << lat << " lon: " << lon << " yaw: " << yaw << endl;
+    // cout << "BEFORE lat: " << lat << " lon: " << lon << " yaw: " << yaw << endl;
 
     return std::make_tuple(lat, lon, yaw);    
 }
@@ -58,7 +58,7 @@ std::tuple<double, double> calculateTargetGps(double relative_target_yaw_deg, do
     target_lon = new_lon_rad * radian_to_deg;
 
 
-    printf("%F,%Fred,marker,\n", target_lat, target_lon);
+    // printf("%F,%Fred,marker,\n", target_lat, target_lon);
 
     return std::make_tuple(target_lat, target_lon);
 }
