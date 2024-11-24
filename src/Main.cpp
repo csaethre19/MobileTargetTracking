@@ -106,7 +106,6 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
             auto [target_lat, target_lon] = calculateTargetGps(angleInDegrees, distance, pos.yaw, pos.lat, pos.lon);
             logger->info("Tracking Thread: Calculated lat={}, lon={}", target_lat, target_lon);
             string message_payload = packDoubleToString(target_lat, target_lon);
-            logger->debug("Tracking Thread: Payload_Target_GPS={}", message_payload);
             msg_id = 'a';
             payloadPrepare(message_payload, msg_id, uart_fd);
 
@@ -171,8 +170,6 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     totalBytesRead += bytesRead;
                 }
             }
-
-            logger->debug("Listening Thread: Payload received: {}", std::string(payload));
                     
             // User initiated start of tracking 
             if (strncmp(payload, "R track-start", 13) == 0) {
