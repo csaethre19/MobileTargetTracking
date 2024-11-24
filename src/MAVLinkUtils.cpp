@@ -172,7 +172,7 @@ std::tuple<double, double> calculateTargetGps(double relative_target_yaw_deg, do
     //meters are used in calculation, convert target distance to meters
     //0.3048 for 50ft altitude
 
-    double target_offset_meter = target_offset_ft * 10.3048;
+    double target_offset_meter = target_offset_ft * 0.3048;
     // Calculate the new latitude
     double new_lat_rad = asin(sin(aircraft_lat) * cos(target_offset_meter / R) + cos(aircraft_lat) * sin(target_offset_meter / R) * cos(true_target_yaw));
     
