@@ -17,13 +17,42 @@
 using namespace cv;
 
 /*
-    Testing notes: use following command from build folder to run
-    sudo ./TestMain 
-    This will access camera, enter transmit video thread, enter listening commands thread,
-    and waits for commands to come in over uart.
-    Upon getting track-start command, initiates tracking and switches to transmitting
-    tracking frames.
-*/
+ * Main application for a video tracking and transmission system.
+ * 
+ * This application reads video frames from a camera (or a video file if specified), 
+ * performs object tracking using various algorithms (e.g., MOSSE, KCF), and transmits 
+ * the tracked video frames via the Raspberry Pi framebuffer. The frames are sent out 
+ * through a connected transmitter module to an external receiver. The application also 
+ * listens for incoming UART commands to control tracking operations and updates the 
+ * target GPS coordinates based on the tracked object’s position.
+ * 
+ * The application operates in a multithreaded environment:
+ * - `transmitterThread`: Handles sending video frames to the framebuffer for transmission.
+ * - `trackingThread`: Runs object tracking, calculates the target GPS coordinates, and 
+ *   prepares data to be transmitted.
+ * - `commandListeningThread`: Listens for UART commands to start/stop tracking and 
+ *   process GPS data.
+ * 
+ * Dependencies:
+ * - OpenCV (for video capture and tracking)
+ * - Framebuffer (for video output)
+ * - UART (for communication)
+ * - spdlog (for logging)
+ * 
+ * Usage:
+ * - Run the application with `sudo ./tracker.sh` 
+ * - This will handle the stop/disable commands for serial-getty service on ttyS0,
+ *   build the application, and run it.
+ * 
+ * Command Protocol:
+ * - 'R track-start': Starts tracking with user-specified coordinates.
+ * - 'R track-end': Stops tracking.
+ * - GPS data is periodically received and logged, and tracking updates are sent.
+ * 
+ * Author: Charlotte Saethre
+ * Date: 2024-11-24
+ */
+
 
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
