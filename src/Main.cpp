@@ -79,7 +79,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
 
     uint16_t onehz_update_counter = 0;
 
-    logger->debug("Tracking Thread: Entering tracking process...");
+    logger->debug("Tracking Thread: Entering tracking process...\n");
     while (continueTracking && tracker.trackerUpdate(bbox, frame) != 0) {
         // Continue tracking and sending updates...
         // Calculate top-left and bottom-right corners of bbox
@@ -118,7 +118,7 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         vidTx.transmitFrame(frame);
     }
 
-    logger->debug("Tracking Thread: Tracking Ended. Setting flight mode to loiter.");
+    logger->debug("Tracking Thread: Tracking Ended. Setting flight mode to loiter.\n");
 
     // Set flight mode to loiter mode
     message_payload = ""; // EMPTY PAYLOAD
