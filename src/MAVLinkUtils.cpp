@@ -34,7 +34,7 @@ std::tuple<double, double> calculateTargetGps(double relative_target_yaw_deg, do
     double target_lat = 0.0;
     double target_lon = 0.0;
 
-    printf("starting coords: lat=%F, lon=%F\n", aircraft_lat, aircraft_lon);
+    // printf("starting coords: lat=%F, lon=%F\n", aircraft_lat, aircraft_lon);
 
     //convert lat, long to radians
     aircraft_lat = aircraft_lat * deg_to_radian;

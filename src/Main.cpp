@@ -129,10 +129,15 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
     // need to start up transmitter thread and send track-fail to app
     transmitTrackingFrame = false;
 
-    // Send desktop app track fail message
-    msg_id = 'g';
-    string trackfailstring = "D track-fail\n";
-    payloadPrepare(trackfailstring, msg_id, uart_fd);
+    // Note: if continueTracking is true, user did not initiate track-end and the tracking 
+    // must have failed.
+    if (continueTracking) {
+        // Send desktop app track-fail message 
+        msg_id = 'g';
+        string trackfailstring = "D track-fail\n";
+        logger->debug("preparing to send TRACK-FAIL message\n");
+        payloadPrepare(trackfailstring, msg_id, uart_fd);
+    }
 
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
     videoTxThread.detach(); // video thread runs independently
@@ -156,18 +161,6 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             // parse payload size
             uint16_t payloadSize = static_cast<uint16_t>(static_cast<unsigned char>(header[0])) |
                     (static_cast<uint16_t>(static_cast<unsigned char>(header[1])) << 8);
-            
-            // Verify checksum:
-            uint8_t onesComplement = static_cast<uint8_t>(header[3]);
-            int sum = 0;
-            for (int i = 0; i < payloadSize; i++) {
-                sum += static_cast<uint8_t>payload[i];
-            }
-            uint8_t calculatedChecksum = static_cast<uint8_t>(0xFF - sum);
-            if (calculatedChecksum != onesComplement) {
-                logger->error("Bad CHECKSUM");
-                continue;
-            }
 
             char payload[payloadSize];
             bytesRead = 0;
