@@ -209,7 +209,7 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             // User initiated start of tracking 
             if (strncmp(payload, "R track-start", 13) == 0) {
                 // Send ACK back to User App
-                msg_id = 'g'; // TODO: what should msg id be for ack?
+                char msg_id = 'z'; // TODO: what should msg id be for ack?
                 string ack = "ACK\n";
                 logger->debug("ListeningThread: track-start ACKNOWLEDGED by raspi\n");
                 payloadPrepare(ack, msg_id, uart_fd);
