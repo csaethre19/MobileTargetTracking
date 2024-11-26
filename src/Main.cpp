@@ -57,6 +57,7 @@ using namespace cv;
 std::mutex mtx;
 std::atomic<bool> continueTracking(true);
 std::atomic<bool> transmitTrackingFrame(false);
+std::atomic<bool> waitingResponse(false);
 
 struct Position {
     double lat;
@@ -163,8 +164,13 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         // Send desktop app track-fail message 
         msg_id = 'g';
         string trackfailstring = "D track-fail\n";
-        logger->debug("preparing to send TRACK-FAIL message\n");
-        payloadPrepare(trackfailstring, msg_id, uart_fd);
+        waitingResponse = true;
+        while (waitingResponse) {
+            logger->debug("preparing to send TRACK-FAIL message\n");
+            payloadPrepare(trackfailstring, msg_id, uart_fd);
+            // resend after 10 seconds...
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+        }
     }
 
     std::thread videoTxThread(transmitterThread, std::ref(vidTx), std::ref(video));
@@ -202,6 +208,12 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
                     
             // User initiated start of tracking 
             if (strncmp(payload, "R track-start", 13) == 0) {
+                // Send ACK back to User App
+                msg_id = 'g'; // TODO: what should msg id be for ack?
+                string ack = "ACK\n";
+                logger->debug("ListeningThread: track-start ACKNOWLEDGED by raspi\n");
+                payloadPrepare(ack, msg_id, uart_fd);
+
                 // Extract coordinates of user selected region 
                 // e.g. 'track-start 448 261 528 381' -> Point p1(448, 261) Point p2(528, 381)
                 string extractedString = &payload[14];
@@ -226,6 +238,11 @@ void commandListeningThread(int uart_fd, std::shared_ptr<spdlog::logger> &logger
             else if (strncmp(payload, "R track-end", 11) == 0) {
                 logger->debug("Listening Thread: Tracking has been stopped by user, received track-end command.");
                 continueTracking = false; // Clear tracking flag to stop the thread
+            }
+            // Received ACK back from User App
+            else if (strncmp(payload, "ACK", 3) == 0) {
+                logger->debug("Listening Thread: track-fail ACKNOWLEDGED by User App");
+                waitingResponse = false; // Clear waiting flag to exit tracking thread
             }
             // GPS Msg from swarm-dongle
             else {
