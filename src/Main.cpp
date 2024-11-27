@@ -165,11 +165,19 @@ void trackingThread(std::shared_ptr<spdlog::logger> &logger, int uart_fd, Point 
         msg_id = 'g';
         string trackfailstring = "D track-fail\n";
         waitingResponse = true;
+        int retryCount = 0;
+        const int maxRetries = 2;
         while (waitingResponse) {
-            logger->debug("preparing to send TRACK-FAIL message\n");
-            payloadPrepare(trackfailstring, msg_id, uart_fd);
-            // resend after 10 seconds...
-            std::this_thread::sleep_for(std::chrono::seconds(10));
+            if (retryCount < maxRetries) {
+                logger->debug("preparing to send TRACK-FAIL message\n");
+                payloadPrepare(trackfailstring, msg_id, uart_fd);
+                // resend after 2 seconds...
+                std::this_thread::sleep_for(std::chrono::seconds(10));
+            }
+            else {
+                waitingResponse = false;
+                logger->debug("reached maximum retries for sending TRACK-FAIL message");
+            }
         }
     }
 
